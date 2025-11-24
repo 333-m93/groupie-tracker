@@ -32,13 +32,23 @@ document.getElementById('btn-external').addEventListener('click', async () => {
       return
     }
     const data = await res.json()
-    // Ticketmaster Discovery API returns _embedded.events
-    const events = (data && data._embedded && data._embedded.events) || []
-    if (!events || events.length === 0) {
-      out.innerHTML = '<p>Aucun événement trouvé</p>'
+    // Our server normalizes Ticketmaster response into { artists: [...] }
+    const artists = (data && data.artists) || []
+    if (!artists || artists.length === 0) {
+      out.innerHTML = '<p>Aucun artiste trouvé</p>'
       return
     }
-    out.innerHTML = '<ul>' + events.map(e => '<li>' + (e.name || '—') + '</li>').join('') + '</ul>'
+    // Render first matching artist with details
+    const html = artists.map(a => {
+      const name = a.name || '—'
+      const url = a.url || '#'
+      const imgs = a.images || []
+      const imgUrl = (imgs.length > 0 && imgs[0].url) ? imgs[0].url : null
+      const events = a.events || []
+      const evHtml = events.length > 0 ? ('<h4>Événements</h4><ul>' + events.map(ev => '<li>' + (ev.date || '') + ' — ' + (ev.venue || '') + ' — <a href="' + (ev.url || '#') + '">' + (ev.name || 'détail') + '</a></li>').join('') + '</ul>') : '<p>Aucun événement à afficher</p>'
+      return '<div class="artist">' + (imgUrl ? ('<img src="' + imgUrl + '" alt="' + name + '" style="max-width:200px;display:block;margin-bottom:8px">') : '') + '<h3>' + name + '</h3>' + (url ? ('<p><a href="' + url + '" target="_blank">Ticketmaster link</a></p>') : '') + evHtml + '</div>'
+    }).join('')
+    out.innerHTML = html
   } catch (err) {
     out.textContent = 'Erreur: ' + err.message
   }

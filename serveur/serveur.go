@@ -123,10 +123,85 @@ func Start(addr string) {
 			return
 		}
 
-		// Stream the JSON response back to the client
+		// Parse Ticketmaster JSON and normalize artist information
+		var tm map[string]interface{}
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&tm); err != nil {
+			http.Error(w, "failed to decode Ticketmaster response", http.StatusBadGateway)
+			return
+		}
+
+		// Collect artist info from events -> _embedded -> events -> _embedded -> attractions
+		artistsMap := map[string]map[string]interface{}{}
+
+		embed, _ := tm["_embedded"].(map[string]interface{})
+		if embed != nil {
+			events, _ := embed["events"].([]interface{})
+			for _, evI := range events {
+				ev, _ := evI.(map[string]interface{})
+				// event basic info
+				evName, _ := ev["name"].(string)
+				evURL, _ := ev["url"].(string)
+
+				// event date
+				var evDate string
+				if dates, ok := ev["dates"].(map[string]interface{}); ok {
+					if start, ok := dates["start"].(map[string]interface{}); ok {
+						if localDate, ok := start["localDate"].(string); ok {
+							evDate = localDate
+						}
+					}
+				}
+
+				// venue and attractions
+				venueName := ""
+				var evEmbed map[string]interface{}
+				if tmp, ok := ev["_embedded"].(map[string]interface{}); ok {
+					evEmbed = tmp
+					if venues, ok := evEmbed["venues"].([]interface{}); ok && len(venues) > 0 {
+						if v, ok := venues[0].(map[string]interface{}); ok {
+							if name, ok := v["name"].(string); ok {
+								venueName = name
+							}
+						}
+					}
+					if atts, ok := evEmbed["attractions"].([]interface{}); ok {
+						for _, aI := range atts {
+							if a, ok := aI.(map[string]interface{}); ok {
+								name, _ := a["name"].(string)
+								if name == "" {
+									continue
+								}
+								art := artistsMap[name]
+								if art == nil {
+									art = map[string]interface{}{"name": name, "url": a["url"], "images": []interface{}{}, "events": []interface{}{}}
+									// images
+									if imgs, ok := a["images"].([]interface{}); ok {
+										art["images"] = imgs
+									}
+									artistsMap[name] = art
+								}
+								// append event
+								evSummary := map[string]interface{}{"name": evName, "url": evURL, "date": evDate, "venue": venueName}
+								artEvents, _ := art["events"].([]interface{})
+								art["events"] = append(artEvents, evSummary)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Build response list
+		artistsList := []interface{}{}
+		for _, v := range artistsMap {
+			artistsList = append(artistsList, v)
+		}
+
+		out := map[string]interface{}{"artists": artistsList}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		if _, err := io.Copy(w, resp.Body); err != nil {
-			log.Printf("failed to stream Ticketmaster response: %v", err)
+		if err := json.NewEncoder(w).Encode(out); err != nil {
+			log.Printf("failed to encode normalized response: %v", err)
 		}
 	})
 
