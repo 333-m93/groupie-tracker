@@ -1,0 +1,6 @@
+body { font-family: Arial, Helvetica, sans-serif; margin: 2rem; color: #222 }
+main { max-width: 720px }
+.search { display:flex; gap:8px; margin-bottom:12px }
+input[type=search] { flex:1; padding:8px }
+button { padding:8px 12px }
+#results ul { list-style: disc; padding-left: 20px }
