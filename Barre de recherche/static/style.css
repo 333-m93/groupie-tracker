@@ -6,7 +6,8 @@ body {
     justify-content: center;
     align-items: center;
     height: 80vh;
-    background: url(test.jpg);
+    /* Use absolute path served by the server to avoid relative resolution issues */
+    background: url('../static/Fond-Groupie.png');
     background-size: cover;
 }
 main {
