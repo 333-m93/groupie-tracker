@@ -1,20 +1,26 @@
 package serveur
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 )
 
 // Start launches the HTTP server and blocks until shutdown.
 func Start(addr string) {
 	mux := http.NewServeMux()
+
+	// Load Ticketmaster API key once at startup (avoid prompting on every request)
+	apiKey := loadAPIKey()
 
 	// Serve the search UI from the folder `Barre de recherche`
 	fs := http.FileServer(http.Dir("./Barre de recherche"))
@@ -84,7 +90,6 @@ func Start(addr string) {
 			return
 		}
 
-		apiKey := os.Getenv("TICKETMASTER_API_KEY")
 		if apiKey == "" {
 			http.Error(w, "server misconfigured: missing TICKETMASTER_API_KEY", http.StatusInternalServerError)
 			return
@@ -248,6 +253,33 @@ func Start(addr string) {
 		log.Fatalf("serveur: Shutdown: %v", err)
 	}
 	log.Println("serveur: exited")
+}
+
+// loadAPIKey attempts to obtain the Ticketmaster API key from env, a local file, or
+// interactively from stdin. If found it sets the process env so handlers can reuse it.
+func loadAPIKey() string {
+	if v := os.Getenv("TICKETMASTER_API_KEY"); strings.TrimSpace(v) != "" {
+		return strings.TrimSpace(v)
+	}
+
+	// try local file `ticketmaster.key`
+	if b, err := os.ReadFile("ticketmaster.key"); err == nil {
+		s := strings.TrimSpace(string(b))
+		if s != "" {
+			os.Setenv("TICKETMASTER_API_KEY", s)
+			return s
+		}
+	}
+
+	// interactive prompt (useful for `go run .` from a terminal)
+	fmt.Print("Ticketmaster API key not set. Enter it now (or leave empty to skip): ")
+	reader := bufio.NewReader(os.Stdin)
+	line, _ := reader.ReadString('\n')
+	line = strings.TrimSpace(line)
+	if line != "" {
+		os.Setenv("TICKETMASTER_API_KEY", line)
+	}
+	return line
 }
 
 // containsIgnoreCase reports whether s contains sub case-insensitively.
