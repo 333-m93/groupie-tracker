@@ -1,3 +1,4 @@
+
 // helper: render results for local /search endpoint
 function renderLocalResults(data, out) {
   if (!data || !data.results || data.results.length === 0) {
