@@ -97,4 +97,37 @@ h4 {
 ul {
     list-style-type: none;
     padding: 0;
+    font-size: 1.1rem;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background: none;
+    border-radius: 10px;
 }
+
+li {
+    text-align: left;
+    text-align: left;
+    justify-content: center;
+}
+
+.artist-select {
+    font-size: 3vh;
+    display: flex;
+    background:none;
+    border: none;
+}
+
+.artist-select:hover{ 
+    cursor: pointer; 
+    scale: 1.1;
+}
+
+p {
+    text-align: center;
+    text-decoration: none;
+}
+
+a[id=ticketmaster-link] {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    text-decoration: none;
+    color: #0073e6;
+}   

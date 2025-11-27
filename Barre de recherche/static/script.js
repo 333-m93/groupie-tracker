@@ -58,7 +58,7 @@ function renderSelectedArtist(artist) {
   let infoHtml = ''
   if (imgUrl) infoHtml += '<img src="' + imgUrl + '" alt="' + name + '" style="max-width:240px;display:block;margin-bottom:8px">'
   infoHtml += '<h3>' + name + '</h3>'
-  if (url) infoHtml += '<p><a href="' + url + '" target="_blank">Voir sur Ticketmaster</a></p>'
+  if (url) infoHtml += '<p><a href="' + url + '" target="_blank" id="ticketmaster-link">Voir sur Ticketmaster</a></p>'
   aInfo.innerHTML = infoHtml
 
   // events
