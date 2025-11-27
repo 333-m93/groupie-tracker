@@ -64,7 +64,7 @@ button[id=btn-external]:hover {
     opacity: 0.7;
 }
 
-.results-info {
+.results-container {
     margin-bottom: auto;
     background-color: rgba(240, 240, 240, 0.3);
     backdrop-filter: blur(8px);
@@ -73,7 +73,7 @@ button[id=btn-external]:hover {
     border-radius: 20px;
     margin-left: auto;
 }
-.concert-info {
+.concert-container {
     margin-bottom: auto;
     background-color: rgba(240, 240, 240, 0.3);
     backdrop-filter: blur(8px);
@@ -81,4 +81,20 @@ button[id=btn-external]:hover {
     padding: 10px 40px;
     border-radius: 20px;
     margin-left: auto;
+}
+h4 {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align:left;
+}
+
+.artist {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
 }

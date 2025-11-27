@@ -13,24 +13,62 @@ function renderExternalArtists(data, out) {
   const artists = (data && data.artists) || []
   if (!artists || artists.length === 0) {
     out.innerHTML = '<p>Aucun artiste trouvé</p>'
+    // clear artist and concerts sections
+    const aInfo = document.getElementById('artist-info')
+    const concerts = document.getElementById('concerts')
+    if (aInfo) aInfo.innerHTML = ''
+    if (concerts) concerts.innerHTML = ''
     return
   }
-  const html = artists.map(a => {
-    const name = a.name || '—'
-    const url = a.url || '#'
-    const imgs = a.images || []
-    let imgUrl = null
-    if (imgs.length > 0) {
-      // images may be objects with url
-      const first = imgs[0]
-      if (first && first.url) imgUrl = first.url
-      else if (typeof first === 'string') imgUrl = first
-    }
-    const events = a.events || []
-    const evHtml = events.length > 0 ? ('<h4>Événements</h4><ul>' + events.map(ev => '<li>' + (ev.date || '') + ' — ' + (ev.venue || '') + ' — ' + (ev.name ? ('<a href="' + (ev.url || '#') + '" target="_blank">' + ev.name + '</a>') : '') + '</li>').join('') + '</ul>') : '<p>Aucun événement à afficher</p>'
-    return '<div class="artist">' + (imgUrl ? ('<img src="' + imgUrl + '" alt="' + name + '" style="max-width:200px;display:block;margin-bottom:8px">') : '') + '<h3>' + name + '</h3>' + (url ? ('<p><a href="' + url + '" target="_blank">Ticketmaster link</a></p>') : '') + evHtml + '</div>'
-  }).join('')
-  out.innerHTML = html
+
+  // Render clickable list of matching artists in results
+  const listHtml = '<ul>' + artists.map((a, i) => '<li><button class="artist-select" data-index="' + i + '">' + (a.name || '—') + '</button></li>').join('') + '</ul>'
+  out.innerHTML = listHtml
+
+  // Render first artist by default
+  renderSelectedArtist(artists[0])
+
+  // attach click handlers to allow selecting another artist
+  const buttons = out.querySelectorAll('.artist-select')
+  buttons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(btn.getAttribute('data-index'), 10)
+      const art = artists[idx]
+      if (art) renderSelectedArtist(art)
+    })
+  })
+}
+
+// Render selected artist info into #artist-info and its events into #concerts
+function renderSelectedArtist(artist) {
+  const aInfo = document.getElementById('artist-info')
+  const concerts = document.getElementById('concerts')
+  if (!aInfo || !concerts) return
+
+  const name = artist.name || '—'
+  const url = artist.url || '#'
+  const imgs = artist.images || []
+  let imgUrl = null
+  if (imgs.length > 0) {
+    const first = imgs[0]
+    if (first && first.url) imgUrl = first.url
+    else if (typeof first === 'string') imgUrl = first
+  }
+
+  let infoHtml = ''
+  if (imgUrl) infoHtml += '<img src="' + imgUrl + '" alt="' + name + '" style="max-width:240px;display:block;margin-bottom:8px">'
+  infoHtml += '<h3>' + name + '</h3>'
+  if (url) infoHtml += '<p><a href="' + url + '" target="_blank">Voir sur Ticketmaster</a></p>'
+  aInfo.innerHTML = infoHtml
+
+  // events
+  const events = artist.events || []
+  if (!events || events.length === 0) {
+    concerts.innerHTML = '<p>Aucun concert trouvé pour cet artiste</p>'
+    return
+  }
+  const evHtml = '<ul>' + events.map(ev => '<li><br>' + (ev.date || '') + ' — ' + (ev.venue || '') + ' — ' + (ev.name ? ('<a href="' + (ev.url || '#') + '" target="_blank">' + ev.name + '</a>') : '') + '</li>').join('') + '</ul>'
+  concerts.innerHTML = evHtml
 }
 
 // Safe binder: attach listener if element exists
