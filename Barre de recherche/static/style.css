@@ -10,19 +10,27 @@ body {
     background: url('../static/Fond-Groupie.png');
     background-size: cover;
 }
-main {
+.container {
+    margin-bottom: auto;
     background-color: rgba(240, 240, 240, 0.3);
     backdrop-filter: blur(8px);
     max-width: 720px;
-    padding: 40px;
-    padding-bottom: 20vh;
+    padding: 10px 40px;
     border-radius: 20px;
-    
+    margin-right: auto;
 
 }
 h1 {
     font-size: 2rem;
     margin-bottom: 1rem;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    text-align:center;
+}
+p {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    text-align: left;
 }
 .search { 
     display:flex; 
@@ -41,23 +49,85 @@ button {
     list-style: disc; 
     padding-left: 20px;
 }
-h1 { 
-    text-align: center; 
-    
-    padding: 12px 0; 
-    margin: 0;
-}
 
 button[id=btn-external] {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     background-color: #0073e6;
     color: white;
     border: none;
     margin-top: 3vh;
-    margin-left: 10vh;
+    margin-left: 18vh;
     
 }   
 button[id=btn-external]:hover {
     cursor: pointer; 
     opacity: 0.7;
 }
+
+.results-container {
+    margin-bottom: auto;
+    background-color: rgba(240, 240, 240, 0.3);
+    backdrop-filter: blur(8px);
+    max-width: 720px;
+    padding: 10px 40px;
+    border-radius: 20px;
+    margin-left: auto;
+}
+.concert-container {
+    margin-bottom: auto;
+    background-color: rgba(240, 240, 240, 0.3);
+    backdrop-filter: blur(8px);
+    max-width: 720px;
+    padding: 10px 40px;
+    border-radius: 20px;
+    margin-left: auto;
+}
+h4 {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align:left;
+}
+
+.artist {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    font-size: 1.1rem;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background: none;
+    border-radius: 10px;
+}
+
+li {
+    text-align: left;
+    text-align: left;
+    justify-content: center;
+}
+
+.artist-select {
+    font-size: 3vh;
+    display: flex;
+    background:none;
+    border: none;
+}
+
+.artist-select:hover{ 
+    cursor: pointer; 
+    scale: 1.1;
+}
+
+p {
+    text-align: center;
+    text-decoration: none;
+}
+
+a[id=ticketmaster-link] {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    text-decoration: none;
+    color: #0073e6;
+}   

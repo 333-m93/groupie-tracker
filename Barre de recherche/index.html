@@ -3,20 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Barre de recherche — Groupie Tracker</title>
+    <title>SpotMyArtist</title>
     <link rel="stylesheet" href="./static/style.css" />
   </head>
   <body>
-    <main>
+    <div class="container">
       <h1>SpotMyArtist</h1>
       <p>Tapez le nom d'un artiste et appuyez sur Rechercher.</p>
       <div class="search">
         <input id="q" type="search" placeholder="Rechercher un artiste..." />
-        <button id="btn-external">Rechercher (Ticketmaster)</button>
       </div>
       <div id="results"></div>
-    </main>
+      <button id="btn-external">Rechercher</button>
+    </div>
 
-    <script src="/static/script.js"></script>
+    <div class="results-container">
+        <h2>Informations sur l'artiste</h2>
+        <div id="artist-info"></div>
+    </div>
+
+    <div class="concert-container">
+        <h2>Informations sur les concerts</h2>
+        <div id="concerts"></div>
+    </div>
+
+    <script src="./static/script.js"></script>
   </body>
 </html>
