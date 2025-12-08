@@ -176,3 +176,20 @@ a[id=ticketmaster-link] {
 #additional-filters.hidden {
     max-height: 0;
 }
+
+.about-more {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background-color: transparent;
+    color: #0073e6;
+    border: 1px solid #0073e6;
+    padding: 8px 16px;
+    margin: 10px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    margin-left:30%;
+}
+.about-more:hover {
+    background-color: #0073e6;
+    color: white;
+}
