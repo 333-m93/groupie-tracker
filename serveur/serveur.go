@@ -22,6 +22,13 @@ func Start(addr string) {
 	// Load Ticketmaster API key once at startup (avoid prompting on every request)
 	apiKey := loadAPIKey()
 
+	// Optional: Wikipedia client identifier. Set this in the environment as
+	// `WIKI_CLIENT_ID` if you want requests to include a custom client id
+	// (we do NOT write this value to the repository).
+	wikiClientID := os.Getenv("WIKI_CLIENT_ID")
+	// default UA to identify this application to Wikimedia (includes project URL)
+	defaultWikiUA := "groupie-tracker/1.0 (https://github.com/Mebrouk-Mohammed/groupie-tracker)"
+
 	// Serve the search UI from the folder `Barre de recherche`
 	fs := http.FileServer(http.Dir("./Barre de recherche"))
 	// root serves index.html
@@ -51,7 +58,7 @@ func Start(addr string) {
 	// Artists endpoint (list)
 	mux.HandleFunc("/artists", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -61,7 +68,7 @@ func Start(addr string) {
 	// Search endpoint: GET /search?q=term
 	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		q := r.URL.Query().Get("q")
@@ -81,17 +88,17 @@ func Start(addr string) {
 	// Requires environment variable TICKETMASTER_API_KEY to be set.
 	mux.HandleFunc("/external-search", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		q := r.URL.Query().Get("q")
 		if q == "" {
-			http.Error(w, "missing query parameter 'q'", http.StatusBadRequest)
+			http.Error(w, "paramètre 'q' manquant", http.StatusBadRequest)
 			return
 		}
 
 		if apiKey == "" {
-			http.Error(w, "server misconfigured: missing TICKETMASTER_API_KEY", http.StatusInternalServerError)
+			http.Error(w, "configuration serveur incorrecte : clé TICKETMASTER_API_KEY manquante", http.StatusInternalServerError)
 			return
 		}
 
@@ -109,13 +116,13 @@ func Start(addr string) {
 		client := &http.Client{Timeout: 10 * time.Second}
 		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, fullURL, nil)
 		if err != nil {
-			http.Error(w, "failed to create request", http.StatusInternalServerError)
+			http.Error(w, "échec création de la requête", http.StatusInternalServerError)
 			return
 		}
 
 		resp, err := client.Do(req)
 		if err != nil {
-			http.Error(w, "failed to contact Ticketmaster", http.StatusBadGateway)
+			http.Error(w, "impossible de contacter Ticketmaster", http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
@@ -132,7 +139,7 @@ func Start(addr string) {
 		var tm map[string]interface{}
 		dec := json.NewDecoder(resp.Body)
 		if err := dec.Decode(&tm); err != nil {
-			http.Error(w, "failed to decode Ticketmaster response", http.StatusBadGateway)
+			http.Error(w, "échec décodage de la réponse Ticketmaster", http.StatusBadGateway)
 			return
 		}
 
@@ -210,10 +217,138 @@ func Start(addr string) {
 		}
 	})
 
+	// Wikipedia search + summary proxy: GET /wiki-search?q=...
+	// Uses MediaWiki API to find the best matching page and returns its summary.
+	mux.HandleFunc("/wiki-search", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+		q := r.URL.Query().Get("q")
+		if q == "" {
+			http.Error(w, "paramètre 'q' manquant", http.StatusBadRequest)
+			return
+		}
+
+		client := &http.Client{Timeout: 10 * time.Second}
+
+		// 1) search for the page title (limit 1) on the French Wikipedia
+		searchURL := "https://fr.wikipedia.org/w/api.php?action=query&format=json&list=search&srsearch=" + url.QueryEscape(q) + "&utf8=1&srlimit=1&srprop="
+		srReq, err := http.NewRequestWithContext(r.Context(), http.MethodGet, searchURL, nil)
+		if err != nil {
+			http.Error(w, "échec création de la requête vers Wikipédia", http.StatusInternalServerError)
+			return
+		}
+		// Always set a User-Agent per Wikimedia policy. If the user provided
+		// a `WIKI_CLIENT_ID` include it in the header for easier contact/tracking.
+		ua := defaultWikiUA
+		if wikiClientID != "" {
+			ua = defaultWikiUA + " (client=" + wikiClientID + ")"
+			srReq.Header.Set("X-Client-ID", wikiClientID)
+		}
+		srReq.Header.Set("User-Agent", ua)
+		// ask for French content
+		srReq.Header.Set("Accept-Language", "fr")
+		srResp, err := client.Do(srReq)
+		if err != nil {
+			http.Error(w, "impossible de contacter Wikipédia", http.StatusBadGateway)
+			return
+		}
+		defer srResp.Body.Close()
+		if srResp.StatusCode != http.StatusOK {
+			w.WriteHeader(http.StatusBadGateway)
+			io.Copy(w, srResp.Body)
+			return
+		}
+
+		var searchBody struct {
+			Query struct{
+				Search []struct{
+					Title string `json:"title"`
+				}
+			} `json:"query"`
+		}
+		if err := json.NewDecoder(srResp.Body).Decode(&searchBody); err != nil {
+			http.Error(w, "échec décodage de la réponse de recherche Wikipédia", http.StatusBadGateway)
+			return
+		}
+		if len(searchBody.Query.Search) == 0 {
+			// no match
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			json.NewEncoder(w).Encode(map[string]interface{}{"page": nil})
+			return
+		}
+
+		title := searchBody.Query.Search[0].Title
+
+		// 2) fetch summary for that title using the French REST summary endpoint
+		summaryURL := "https://fr.wikipedia.org/api/rest_v1/page/summary/" + url.PathEscape(title)
+		sReq, err := http.NewRequestWithContext(r.Context(), http.MethodGet, summaryURL, nil)
+		if err != nil {
+			http.Error(w, "échec création de la requête vers le résumé Wikipédia", http.StatusInternalServerError)
+			return
+		}
+		ua2 := defaultWikiUA
+		if wikiClientID != "" {
+			ua2 = defaultWikiUA + " (client=" + wikiClientID + ")"
+			sReq.Header.Set("X-Client-ID", wikiClientID)
+		}
+		sReq.Header.Set("User-Agent", ua2)
+		sReq.Header.Set("Accept-Language", "fr")
+		sResp, err := client.Do(sReq)
+		if err != nil {
+			http.Error(w, "impossible de contacter le service résumé de Wikipédia", http.StatusBadGateway)
+			return
+		}
+		defer sResp.Body.Close()
+		if sResp.StatusCode != http.StatusOK {
+			w.WriteHeader(http.StatusBadGateway)
+			io.Copy(w, sResp.Body)
+			return
+		}
+
+		var sum map[string]interface{}
+		if err := json.NewDecoder(sResp.Body).Decode(&sum); err != nil {
+			http.Error(w, "échec décodage du résumé Wikipédia", http.StatusBadGateway)
+			return
+		}
+
+		// normalize to a simple object and truncate the extract to keep it short
+		page := map[string]interface{}{
+			"title": title,
+			"extract": nil,
+			"thumbnail": nil,
+			"url": nil,
+			"lang": "fr",
+		}
+		if ex, ok := sum["extract"].(string); ok && ex != "" {
+			// keep summary concise (max 400 chars)
+			if len(ex) > 400 {
+				ex = ex[:400] + "..."
+			}
+			page["extract"] = ex
+		}
+		if cu, ok := sum["content_urls"].(map[string]interface{}); ok {
+			if desktop, ok := cu["desktop"].(map[string]interface{}); ok {
+				if p, ok := desktop["page"].(string); ok {
+					page["url"] = p
+				}
+			}
+		}
+		if thumb, ok := sum["thumbnail"].(map[string]interface{}); ok {
+			if s, ok := thumb["source"].(string); ok {
+				page["thumbnail"] = s
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"page": page})
+	})
+
 	// Events endpoint (kept minimal)
 	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		var payload map[string]interface{}
@@ -272,7 +407,7 @@ func loadAPIKey() string {
 	}
 
 	// interactive prompt (useful for `go run .` from a terminal)
-	fmt.Print("Ticketmaster API key not set. Enter it now (or leave empty to skip): ")
+	fmt.Print("Clé Ticketmaster non définie. Entrez-la maintenant (ou laissez vide pour ignorer) : ")
 	reader := bufio.NewReader(os.Stdin)
 	line, _ := reader.ReadString('\n')
 	line = strings.TrimSpace(line)

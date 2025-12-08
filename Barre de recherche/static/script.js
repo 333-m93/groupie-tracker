@@ -20,23 +20,26 @@ function renderExternalArtists(data, out) {
     if (concerts) concerts.innerHTML = ''
     return
   }
-
-  // Render clickable list of matching artists in results
-  const listHtml = '<ul>' + artists.map((a, i) => '<li><button class="artist-select" data-index="' + i + '">' + (a.name || '—') + '</button></li>').join('') + '</ul>'
+  // Render a simple list of matching artists in results (no artist details)
+  const listHtml = '<ul>' + artists.map((a) => '<li>' + (a.name || '—') + '</li>').join('') + '</ul>'
   out.innerHTML = listHtml
 
-  // Render first artist by default
-  renderSelectedArtist(artists[0])
-
-  // attach click handlers to allow selecting another artist
-  const buttons = out.querySelectorAll('.artist-select')
-  buttons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = parseInt(btn.getAttribute('data-index'), 10)
-      const art = artists[idx]
-      if (art) renderSelectedArtist(art)
-    })
+  // Build concerts section grouped by artist
+  const concerts = document.getElementById('concerts')
+  if (!concerts) return
+  const byArtist = artists.map(a => {
+    const name = a.name || a.strArtist || '—'
+    const events = a.events || []
+    return { name, events }
   })
+
+  const concertsHtml = byArtist.map(a => {
+    if (!a.events || a.events.length === 0) return '<section class="artist-concerts"><h4>' + a.name + '</h4><p>Aucun concert trouvé</p></section>'
+    const evList = '<ul>' + a.events.map(ev => '<li>' + (ev.date || '') + ' — ' + (ev.venue || '') + ' — ' + (ev.name ? ('<a href="' + (ev.url || '#') + '" target="_blank">' + ev.name + '</a>') : '') + '</li>').join('') + '</ul>'
+    return '<section class="artist-concerts"><h4>' + a.name + '</h4>' + evList + '</section>'
+  }).join('')
+
+  concerts.innerHTML = concertsHtml
 }
 
 // Render selected artist info into #artist-info and its events into #concerts
@@ -95,32 +98,83 @@ bindIfExists('btn', async () => {
   }
 })
 
-// Ticketmaster external search
-bindIfExists('btn-external', async () => {
+// (Individual external and wiki buttons removed; use the combined search button)
+
+// Combined search: Wikipédia (artist info) + Ticketmaster (concerts)
+bindIfExists('btn-all', async () => {
   const q = document.getElementById('q').value.trim()
-  const out = document.getElementById('results')
-  out.textContent = 'Recherche Ticketmaster...'
+  const resultsOut = document.getElementById('results')
+  const info = document.getElementById('artist-info')
+  const concerts = document.getElementById('concerts')
+  if (!resultsOut || !info || !concerts) return
+
+  resultsOut.textContent = 'Recherche en cours...'
+  info.innerHTML = 'Recherche Wikipédia...'
+  concerts.innerHTML = 'Recherche concerts...'
+
   try {
-    const res = await fetch('/external-search?q=' + encodeURIComponent(q))
-    if (!res.ok) {
-      const txt = await res.text()
-      out.textContent = 'Erreur externe: ' + txt
-      return
+    const [wikiRes, tmRes] = await Promise.allSettled([
+      fetch('/wiki-search?q=' + encodeURIComponent(q)),
+      fetch('/external-search?q=' + encodeURIComponent(q)),
+    ])
+
+    // handle wiki result
+    if (wikiRes.status === 'fulfilled') {
+      const r = wikiRes.value
+      if (r.ok) {
+        const data = await r.json()
+        renderWikiPage(data, info)
+      } else {
+        info.textContent = 'Erreur Wikipédia: ' + await r.text()
+      }
+    } else {
+      info.textContent = 'Erreur Wikipédia: ' + (wikiRes.reason && wikiRes.reason.message ? wikiRes.reason.message : 'échec')
     }
-    const data = await res.json()
-    renderExternalArtists(data, out)
+
+    // handle ticketmaster / external result
+    if (tmRes.status === 'fulfilled') {
+      const r = tmRes.value
+      if (r.ok) {
+        const data = await r.json()
+        // render list into results and default display first artist/events into artist-info/concerts
+        renderExternalArtists(data, resultsOut)
+      } else {
+        resultsOut.textContent = 'Erreur concerts: ' + await r.text()
+        concerts.innerHTML = ''
+      }
+    } else {
+      resultsOut.textContent = 'Erreur concerts: ' + (tmRes.reason && tmRes.reason.message ? tmRes.reason.message : 'échec')
+      concerts.innerHTML = ''
+    }
+
   } catch (err) {
-    out.textContent = 'Erreur: ' + err.message
+    resultsOut.textContent = 'Erreur: ' + err.message
+    info.textContent = ''
+    concerts.textContent = ''
   }
 })
 
-// Trigger external search on Enter key
+function renderWikiPage(data, out) {
+  const page = data && data.page
+    if (!page) {
+    out.innerHTML = '<p>Aucune page Wikipédia trouvée</p>'
+    return
+  }
+  const title = page.title || ''
+  const extract = page.extract || ''
+  const thumb = page.thumbnail || ''
+  const url = page.url || ''
+  const html = (thumb ? ('<img src="' + thumb + '" alt="' + title + '" style="max-width:220px;display:block;margin-bottom:8px">') : '') + '<h3>' + title + '</h3>' + (extract ? ('<p>' + (extract.length > 800 ? (extract.slice(0, 800) + '...') : extract) + '</p>') : '') + (url ? ('<p><a href="' + url + '" target="_blank">Voir sur Wikipédia</a></p>') : '')
+  out.innerHTML = html
+}
+
+// Trigger combined search on Enter key
 const input = document.getElementById('q')
 if (input) {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      const btnExternal = document.getElementById('btn-external')
-      if (btnExternal) btnExternal.click()
+      const btnAll = document.getElementById('btn-all')
+      if (btnAll) btnAll.click()
     }
   })
 }
