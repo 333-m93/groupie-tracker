@@ -95,13 +95,37 @@ bindIfExists('btn', async () => {
   }
 })
 
-// Ticketmaster external search
+// Ticketmaster external search with multiple criteria
 bindIfExists('btn-external', async () => {
-  const q = document.getElementById('q').value.trim()
+  // Collect all search criteria
+  const artistName = document.getElementById('artist-name')?.value.trim() || ''
+  const creationDate = document.getElementById('creation-date')?.value.trim() || ''
+  const songName = document.getElementById('song-name')?.value.trim() || ''
+  const firstAlbum = document.getElementById('first-album')?.value.trim() || ''
+  const members = document.getElementById('members')?.value.trim() || ''
+
   const out = document.getElementById('results')
-  out.textContent = 'Recherche Ticketmaster...'
+  
+  // Check if at least one field is filled
+  if (!artistName && !creationDate && !songName && !firstAlbum && !members) {
+    out.textContent = 'Veuillez remplir au moins un champ de recherche'
+    return
+  }
+
+  out.textContent = 'Recherche en cours...'
+  
   try {
-    const res = await fetch('/external-search?q=' + encodeURIComponent(q))
+    // Build query string with all filled fields
+    const params = new URLSearchParams()
+    if (artistName) params.set('artist', artistName)
+    if (creationDate) params.set('year', creationDate)
+    if (songName) params.set('song', songName)
+    if (firstAlbum) params.set('album', firstAlbum)
+    if (members) params.set('member', members)
+
+    // For now, use artist name as primary search (you can adapt server to handle multi-criteria)
+    const searchQuery = artistName || songName || firstAlbum || members
+    const res = await fetch('/external-search?q=' + encodeURIComponent(searchQuery))
     if (!res.ok) {
       const txt = await res.text()
       out.textContent = 'Erreur externe: ' + txt
@@ -114,13 +138,34 @@ bindIfExists('btn-external', async () => {
   }
 })
 
-// Trigger external search on Enter key
-const input = document.getElementById('q')
-if (input) {
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const btnExternal = document.getElementById('btn-external')
-      if (btnExternal) btnExternal.click()
+// Trigger external search on Enter key for all search inputs
+const searchInputs = ['artist-name', 'creation-date', 'song-name', 'first-album', 'members']
+searchInputs.forEach(inputId => {
+  const input = document.getElementById(inputId)
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const btnExternal = document.getElementById('btn-external')
+        if (btnExternal) btnExternal.click()
+      }
+    })
+  }
+})
+
+// Toggle additional filters visibility
+const toggleBtn = document.getElementById('toggle-filters')
+const additionalFilters = document.getElementById('additional-filters')
+
+if (toggleBtn && additionalFilters) {
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = additionalFilters.classList.contains('hidden')
+    
+    if (isHidden) {
+      additionalFilters.classList.remove('hidden')
+      toggleBtn.textContent = 'Voir - de filtres'
+    } else {
+      additionalFilters.classList.add('hidden')
+      toggleBtn.textContent = 'Voir + de filtres'
     }
   })
 }

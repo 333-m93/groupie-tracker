@@ -9,12 +9,49 @@
   <body>
     <div class="container">
       <h1>SpotMyArtist</h1>
-      <p>Tapez le nom d'un artiste et appuyez sur Rechercher.</p>
-      <div class="search">
-        <input id="q" type="search" placeholder="Rechercher un artiste..." />
+      <p>Tapez vos critères de recherche et appuyez sur Rechercher.</p>
+      
+      <div class="search-group">
+        <label for="artist-name">Nom de l'artiste/groupe</label>
+        <div class="search">
+          <input id="artist-name" type="search" placeholder="Rechercher un artiste..." />
+        </div>
       </div>
-      <div id="results"></div>
+
+      <button id="toggle-filters" class="toggle-btn">Voir + de filtres</button>
+
+      <div id="additional-filters" class="hidden">
+        <div class="search-group">
+          <label for="creation-date">Date de création</label>
+          <div class="search">
+            <input id="creation-date" type="search" placeholder="Année de création..." />
+          </div>
+        </div>
+
+        <div class="search-group">
+          <label for="song-name">Chanson</label>
+          <div class="search">
+            <input id="song-name" type="search" placeholder="Nom d'une chanson..." />
+          </div>
+        </div>
+
+        <div class="search-group">
+          <label for="first-album">Premier album</label>
+          <div class="search">
+            <input id="first-album" type="search" placeholder="Titre du premier album..." />
+          </div>
+        </div>
+
+        <div class="search-group">
+          <label for="members">Membre(s)</label>
+          <div class="search">
+            <input id="members" type="search" placeholder="Nom d'un membre..." />
+          </div>
+        </div>
+      </div>
+
       <button id="btn-external">Rechercher</button>
+      <div id="results"></div>
     </div>
 
     <div class="results-container">

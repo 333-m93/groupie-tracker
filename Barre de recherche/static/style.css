@@ -130,4 +130,49 @@ a[id=ticketmaster-link] {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     text-decoration: none;
     color: #0073e6;
-}   
+}
+
+/* Hidden class for collapsible filters */
+.hidden {
+    display: none;
+}
+
+/* Toggle button style */
+.toggle-btn {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background-color: transparent;
+    color: #0073e6;
+    border: 1px solid #0073e6;
+    padding: 8px 16px;
+    margin: 10px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background-color: #0073e6;
+    color: white;
+}
+
+/* Search group spacing */
+.search-group {
+    margin-bottom: 15px;
+}
+
+.search-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+/* Additional filters container with smooth transition */
+#additional-filters {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+#additional-filters.hidden {
+    max-height: 0;
+}
