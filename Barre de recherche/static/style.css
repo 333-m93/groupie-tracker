@@ -110,7 +110,7 @@ body > :not(.bg-scrolling-container) {
     margin: 0;
     position: relative;
     z-index: 1;
-    margin-left: 30px;
+    transform: translateX(-100px);
 }
 
 h1 {
@@ -166,7 +166,7 @@ button[id=btn-external]:hover {
     position: relative;
     z-index: 1;
     flex: 1;
-    margin-left: 100px;
+    transform: translateX(230px);
 }
 
 .concert-container {
@@ -179,7 +179,7 @@ button[id=btn-external]:hover {
     z-index: 1;
     margin-bottom: auto;
     flex: 1;
-    margin: left 100px;
+    margin-left: 600px;
 }
 
 h4 {
