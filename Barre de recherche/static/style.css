@@ -29,7 +29,7 @@ body {
 
 .bg-column {
     position: relative;
-    width: 33.33%;
+    width: 25%;
     height: 100%;
     overflow: hidden;
     background-color: #222;
@@ -47,6 +47,11 @@ body {
 }
 
 .bg-column:nth-child(2) .bg-scrolling {
+    animation: bg-defilement-inverse 16s linear infinite;
+}
+
+/* For 4 columns: alternate direction on 2 and 4 */
+.bg-column:nth-child(4) .bg-scrolling {
     animation: bg-defilement-inverse 16s linear infinite;
 }
 
@@ -96,7 +101,7 @@ body {
 }
 
 /* Contenu principal */
-body > :not(.bg-scrolling-container) {
+body > :not(.bg-scrolling-container):not(.page-overlay) {
     position: relative;
     z-index: 1;
 }
@@ -110,7 +115,7 @@ body > :not(.bg-scrolling-container) {
     margin: 0;
     position: relative;
     z-index: 1;
-    transform: translateX(-100px);
+    transform: translateX(1px);
 }
 
 h1 {
@@ -292,4 +297,15 @@ a[id=ticketmaster-link] {
 .about-more:hover {
     background-color: #0073e6;
     color: white;
+}
+
+/* Full-page blur overlay above all content */
+.page-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(17, 17, 17, 0.15);
+    pointer-events: none; /* Pass clicks to underlying content. Remove if you want to block interactions */
 }
