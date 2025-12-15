@@ -1,25 +1,118 @@
 body { 
     font-family: Arial, Helvetica, sans-serif; 
-    margin: 2rem; 
+    margin: 0;
     color: #222;
+    overflow: hidden;
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    padding-top: 2rem;
+}
+
+/* Background scrolling infini - FIXED */
+.bg-scrolling-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: #111;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.bg-column {
+    position: relative;
+    width: 33.33%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #222;
+}
+
+.bg-scrolling {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    animation: bg-defilement 17s linear infinite;
+}
+
+.bg-column:nth-child(2) .bg-scrolling {
+    animation: bg-defilement-inverse 16s linear infinite;
+}
+
+.bg-scrolling div {
+    width: 80%;
+    aspect-ratio: 1 / 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 80vh;
-    /* Use absolute path served by the server to avoid relative resolution issues */
-    background: url('../static/Fond-Groupie.png');
-    background-size: cover;
+    flex-shrink: 0;
+    font-size: 40px;
+    font-weight: bold;
+    color: #fff;
+    margin: 0 auto;
+    overflow: hidden;
 }
+
+.bg-scrolling div img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.bg-scrolling div:nth-child(odd) {
+    background-color: #4caf50;
+}
+
+.bg-scrolling div:nth-child(even) {
+    background-color: #2196f3;
+}
+
+@keyframes bg-defilement {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-50%);
+    }
+}
+
+@keyframes bg-defilement-inverse {
+    0% {
+        transform: translateY(-50%);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+/* Contenu principal */
+body > :not(.bg-scrolling-container) {
+    position: relative;
+    z-index: 1;
+}
+
 .container {
-    margin-bottom: auto;
-    background-color: rgba(240, 240, 240, 0.3);
+    background-color: rgba(240, 240, 240, 0.2);
     backdrop-filter: blur(8px);
     max-width: 720px;
     padding: 10px 40px;
     border-radius: 20px;
-    margin-right: auto;
-
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    transform: translateX(-100px);
 }
+
 h1 {
     font-size: 2rem;
     margin-bottom: 1rem;
@@ -65,23 +158,30 @@ button[id=btn-external]:hover {
 }
 
 .results-container {
-    margin-bottom: auto;
-    background-color: rgba(240, 240, 240, 0.3);
+    background-color: rgba(240, 240, 240, 0.95);
     backdrop-filter: blur(8px);
-    max-width: 720px;
+    max-width: 400px;
     padding: 10px 40px;
     border-radius: 20px;
-    margin-left: auto;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    transform: translateX(230px);
 }
+
 .concert-container {
-    margin-bottom: auto;
-    background-color: rgba(240, 240, 240, 0.3);
+    background-color: rgba(240, 240, 240, 0.95);
     backdrop-filter: blur(8px);
-    max-width: 720px;
+    max-width: 400px;
     padding: 10px 40px;
     border-radius: 20px;
-    margin-left: auto;
+    position: relative;
+    z-index: 1;
+    margin-bottom: auto;
+    flex: 1;
+    margin-left: 600px;
 }
+
 h4 {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     font-size: 1.5rem;
@@ -130,4 +230,99 @@ a[id=ticketmaster-link] {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     text-decoration: none;
     color: #0073e6;
-}   
+}
+
+/* Hidden class for collapsible filters */
+.hidden {
+    display: none;
+}
+
+/* Toggle button style */
+.toggle-btn {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background-color: transparent;
+    color: #0073e6;
+    border: 1px solid #0073e6;
+    padding: 8px 16px;
+    margin: 10px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background-color: #0073e6;
+    color: white;
+}
+
+/* Search group spacing */
+.search-group {
+    margin-bottom: 15px;
+}
+
+.search-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+/* Additional filters container with smooth transition */
+#additional-filters {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+#additional-filters.hidden {
+    max-height: 0;
+}
+
+.about-more {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    background-color: transparent;
+    color: #0073e6;
+    border: 1px solid #0073e6;
+    padding: 8px 16px;
+    margin: 10px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    margin-left:30%;
+}
+.about-more:hover {
+    background-color: #0073e6;
+    color: white;
+}
+
+.albums-block h3 {
+    margin-top: 12px;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.album-card {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+}
+
+.album-card img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.album-card figcaption {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: #222;
+}

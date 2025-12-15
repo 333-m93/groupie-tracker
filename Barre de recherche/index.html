@@ -7,26 +7,37 @@
     <link rel="stylesheet" href="./static/style.css" />
   </head>
   <body>
+    <!-- Background scrolling infini -->
+    <div class="bg-scrolling-container">
+      <div class="bg-column">
+        <div class="bg-scrolling"></div>
+      </div>
+      <div class="bg-column">
+        <div class="bg-scrolling"></div>
+      </div>
+      <div class="bg-column">
+        <div class="bg-scrolling"></div>
+      </div>
+    </div>
+
     <div class="container">
       <h1>SpotMyArtist</h1>
-      <p>Tapez le nom d'un artiste et appuyez sur Rechercher.</p>
-      <div class="search">
-        <input id="q" type="search" placeholder="Rechercher un artiste..." />
-        <button id="btn-all">Rechercher</button>
-      </div>
-      <div id="results" class="glass"></div>
+      <p>Page d'accueil avec images animées en arrière-plan</p>
     </div>
 
     <div class="results-container">
         <h2>Informations sur l'artiste</h2>
         <div id="artist-info"></div>
+        <div class="albums-block">
+          <h3>Pochettes d'albums</h3>
+          <div id="albums"></div>
+        </div>
     </div>
 
     <div class="concert-container">
         <h2>Informations sur les concerts</h2>
         <div id="concerts"></div>
     </div>
-
     <script src="./static/script.js"></script>
   </body>
 </html>
