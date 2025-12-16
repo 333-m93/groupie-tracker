@@ -1,17 +1,15 @@
 package serveur
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
+	neturl "net/url"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 )
 
@@ -19,12 +17,31 @@ import (
 func Start(addr string) {
 	mux := http.NewServeMux()
 
-	// Load Ticketmaster API key once at startup (avoid prompting on every request)
-	apiKey := loadAPIKey()
+	// Static album images served from local assets
+	type AlbumImage struct {
+		Title string `json:"title"`
+		URL   string `json:"url"`
+	}
+	albumImages := []AlbumImage{
+		{Title: "PNL", URL: "/static/pnl.jpg"},
+		{Title: "Laufey", URL: "/static/laufey.png"},
+		{Title: "Boa", URL: "/static/boa.jpg"},
+		{Title: "Gims", URL: "/static/gims.jpg"},
+		{Title: "Hamza", URL: "/static/hamza.jpg"},
+		{Title: "Tyler", URL: "/static/tyler.jpg"},
+		{Title: "Beabadoobee", URL: "/static/beabadoobee.jpg"},
+		{Title: "Billie", URL: "/static/billie.jpg"},
+		{Title: "Bob Marley", URL: "/static/bob-marley.jpg"},
+		{Title: "Imogen Heap", URL: "/static/imogen_heap.jpg"},
+		{Title: "Melo", URL: "/static/Melo.jpg"},
+		{Title: "Vespertine", URL: "/static/Vespertine.jpg"},
+		{Title: "Spider-Man", URL: "/static/spider-man.jpg"},
+		{Title: "Beabadoobee 2", URL: "/static/beabadoobee2.jpg"},
+		{Title: "Cigarettes After Sex", URL: "/static/cigaretteaftersex.jpg"},
+	}
 
 	// Serve the search UI from the folder `Barre de recherche`
 	fs := http.FileServer(http.Dir("./Barre de recherche"))
-	// root serves index.html
 	mux.Handle("/", fs)
 
 	// Static assets (if referenced with /static/ in the HTML)
@@ -51,7 +68,7 @@ func Start(addr string) {
 	// Artists endpoint (list)
 	mux.HandleFunc("/artists", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -61,7 +78,7 @@ func Start(addr string) {
 	// Search endpoint: GET /search?q=term
 	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		q := r.URL.Query().Get("q")
@@ -77,143 +94,87 @@ func Start(addr string) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"results": results})
 	})
 
-	// External search proxy to Ticketmaster Discovery API
-	// Requires environment variable TICKETMASTER_API_KEY to be set.
+	// External search endpoint expected by the frontend button
+	// GET /external-search?q=term
 	mux.HandleFunc("/external-search", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
+		type Image struct {
+			URL string `json:"url"`
+		}
+		type Event struct {
+			Date  string `json:"date,omitempty"`
+			Venue string `json:"venue,omitempty"`
+			Name  string `json:"name,omitempty"`
+			URL   string `json:"url,omitempty"`
+		}
+		type ExtArtist struct {
+			Name   string  `json:"name"`
+			URL    string  `json:"url,omitempty"`
+			Images []Image `json:"images,omitempty"`
+			Events []Event `json:"events,omitempty"`
+		}
+
 		q := r.URL.Query().Get("q")
-		if q == "" {
-			http.Error(w, "missing query parameter 'q'", http.StatusBadRequest)
-			return
-		}
 
-		if apiKey == "" {
-			http.Error(w, "server misconfigured: missing TICKETMASTER_API_KEY", http.StatusInternalServerError)
-			return
-		}
-
-		// Build Ticketmaster Discovery API URL
-		tmURL := "https://app.ticketmaster.com/discovery/v2/events.json"
-		vals := url.Values{}
-		vals.Set("keyword", q)
-		vals.Set("locale", "fr-FR")
-		vals.Set("apikey", apiKey)
-		vals.Set("size", "10")
-
-		fullURL := tmURL + "?" + vals.Encode()
-
-		// Create request with short timeout
-		client := &http.Client{Timeout: 10 * time.Second}
-		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, fullURL, nil)
+		// Try Discogs first
+		artistsResp, err := discogsSearch(q)
 		if err != nil {
-			http.Error(w, "failed to create request", http.StatusInternalServerError)
-			return
+			log.Printf("discogs search error: %v", err)
 		}
 
-		resp, err := client.Do(req)
-		if err != nil {
-			http.Error(w, "failed to contact Ticketmaster", http.StatusBadGateway)
-			return
-		}
-		defer resp.Body.Close()
-
-		// Forward status code
-		if resp.StatusCode != http.StatusOK {
-			// copy response body for debugging
-			w.WriteHeader(http.StatusBadGateway)
-			io.Copy(w, resp.Body)
-			return
-		}
-
-		// Parse Ticketmaster JSON and normalize artist information
-		var tm map[string]interface{}
-		dec := json.NewDecoder(resp.Body)
-		if err := dec.Decode(&tm); err != nil {
-			http.Error(w, "failed to decode Ticketmaster response", http.StatusBadGateway)
-			return
-		}
-
-		// Collect artist info from events -> _embedded -> events -> _embedded -> attractions
-		artistsMap := map[string]map[string]interface{}{}
-
-		embed, _ := tm["_embedded"].(map[string]interface{})
-		if embed != nil {
-			events, _ := embed["events"].([]interface{})
-			for _, evI := range events {
-				ev, _ := evI.(map[string]interface{})
-				// event basic info
-				evName, _ := ev["name"].(string)
-				evURL, _ := ev["url"].(string)
-
-				// event date
-				var evDate string
-				if dates, ok := ev["dates"].(map[string]interface{}); ok {
-					if start, ok := dates["start"].(map[string]interface{}); ok {
-						if localDate, ok := start["localDate"].(string); ok {
-							evDate = localDate
-						}
+		var out []ExtArtist
+		for _, a := range artistsResp {
+			out = append(out, ExtArtist{
+				Name: a.Name,
+				URL:  a.ResourceURL,
+				Images: func() []Image {
+					if a.Thumb != "" {
+						return []Image{{URL: a.Thumb}}
 					}
+					return nil
+				}(),
+			})
+		}
+
+		// If Discogs empty or failed, fallback to local data
+		if len(out) == 0 {
+			for _, ai := range albumImages {
+				if q == "" || containsIgnoreCase(ai.Title, q) {
+					out = append(out, ExtArtist{Name: ai.Title, Images: []Image{{URL: ai.URL}}})
 				}
-
-				// venue and attractions
-				venueName := ""
-				var evEmbed map[string]interface{}
-				if tmp, ok := ev["_embedded"].(map[string]interface{}); ok {
-					evEmbed = tmp
-					if venues, ok := evEmbed["venues"].([]interface{}); ok && len(venues) > 0 {
-						if v, ok := venues[0].(map[string]interface{}); ok {
-							if name, ok := v["name"].(string); ok {
-								venueName = name
-							}
-						}
-					}
-					if atts, ok := evEmbed["attractions"].([]interface{}); ok {
-						for _, aI := range atts {
-							if a, ok := aI.(map[string]interface{}); ok {
-								name, _ := a["name"].(string)
-								if name == "" {
-									continue
-								}
-								art := artistsMap[name]
-								if art == nil {
-									art = map[string]interface{}{"name": name, "url": a["url"], "images": []interface{}{}, "events": []interface{}{}}
-									// images
-									if imgs, ok := a["images"].([]interface{}); ok {
-										art["images"] = imgs
-									}
-									artistsMap[name] = art
-								}
-								// append event
-								evSummary := map[string]interface{}{"name": evName, "url": evURL, "date": evDate, "venue": venueName}
-								artEvents, _ := art["events"].([]interface{})
-								art["events"] = append(artEvents, evSummary)
-							}
-						}
+			}
+			if len(out) == 0 {
+				for _, a := range artists {
+					if q == "" || containsIgnoreCase(a.Name, q) {
+						out = append(out, ExtArtist{Name: a.Name})
 					}
 				}
 			}
 		}
 
-		// Build response list
-		artistsList := []interface{}{}
-		for _, v := range artistsMap {
-			artistsList = append(artistsList, v)
-		}
-
-		out := map[string]interface{}{"artists": artistsList}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		if err := json.NewEncoder(w).Encode(out); err != nil {
-			log.Printf("failed to encode normalized response: %v", err)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"artists": out})
+	})
+
+	// --- Discogs client ---
+
+	// Internal album images API (no external calls)
+	mux.HandleFunc("/album-images", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
 		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"images": albumImages})
 	})
 
 	// Events endpoint (kept minimal)
 	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
 		var payload map[string]interface{}
@@ -255,42 +216,64 @@ func Start(addr string) {
 	log.Println("serveur: exited")
 }
 
-// loadAPIKey attempts to obtain the Ticketmaster API key from env, a local file, or
-// interactively from stdin. If found it sets the process env so handlers can reuse it.
-func loadAPIKey() string {
-	if v := os.Getenv("TICKETMASTER_API_KEY"); strings.TrimSpace(v) != "" {
-		return strings.TrimSpace(v)
-	}
+// discogsSearch calls the Discogs database search API and returns normalized results.
+// Uses the user-provided token. For simplicity, this searches type=artist by q.
+type discogsResult struct {
+	Name        string
+	ResourceURL string
+	Thumb       string
+}
 
-	// try local file `ticketmaster.key`
-	if b, err := os.ReadFile("ticketmaster.key"); err == nil {
-		s := strings.TrimSpace(string(b))
-		if s != "" {
-			os.Setenv("TICKETMASTER_API_KEY", s)
-			return s
-		}
+func discogsSearch(q string) ([]discogsResult, error) {
+	token := "KRDsrkapunkrrKnOMADBDawunVlLPtqGpqRzXMfm" // Provided by user
+	if token == "" {
+		return nil, fmt.Errorf("discogs token missing")
 	}
+	reqURL := "https://api.discogs.com/database/search?type=artist&q=" + neturl.QueryEscape(q)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Discogs token="+token)
+	req.Header.Set("User-Agent", "GroupieTracker/1.0 +https://example.com")
 
-	// interactive prompt (useful for `go run .` from a terminal)
-	fmt.Print("Ticketmaster API key not set. Enter it now (or leave empty to skip): ")
-	reader := bufio.NewReader(os.Stdin)
-	line, _ := reader.ReadString('\n')
-	line = strings.TrimSpace(line)
-	if line != "" {
-		os.Setenv("TICKETMASTER_API_KEY", line)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
 	}
-	return line
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("discogs status %d: %s", resp.StatusCode, string(b))
+	}
+	var payload struct {
+		Results []struct {
+			Title       string `json:"title"`
+			ResourceURL string `json:"resource_url"`
+			Thumb       string `json:"thumb"`
+		} `json:"results"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	out := make([]discogsResult, 0, len(payload.Results))
+	for _, r := range payload.Results {
+		out = append(out, discogsResult{
+			Name:        r.Title,
+			ResourceURL: r.ResourceURL,
+			Thumb:       r.Thumb,
+		})
+	}
+	return out, nil
 }
 
 // containsIgnoreCase reports whether s contains sub case-insensitively.
 func containsIgnoreCase(s, sub string) bool {
-	// simple ASCII case-insensitive contains
 	if len(sub) == 0 {
 		return true
 	}
 	S := []rune(s)
 	subR := []rune(sub)
-	// lower both
 	for i := range S {
 		if S[i] >= 'A' && S[i] <= 'Z' {
 			S[i] = S[i] - 'A' + 'a'
@@ -303,7 +286,7 @@ func containsIgnoreCase(s, sub string) bool {
 	}
 	sLower := string(S)
 	subLower := string(subR)
-	return len(subLower) <= len(sLower) && (indexOf(sLower, subLower) >= 0)
+	return len(subLower) <= len(sLower) && indexOf(sLower, subLower) >= 0
 }
 
 func indexOf(s, sub string) int {

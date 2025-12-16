@@ -298,6 +298,34 @@ a[id=ticketmaster-link] {
     color: white;
 }
 
+/* Album grid styles */
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.album-card {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    text-align: center;
+    backdrop-filter: blur(4px);
+}
+
+.album-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+}
+
+.album-card figcaption {
+    font-size: 0.85rem;
+    padding: 6px 8px;
+}
+
 /* Full-page blur overlay above all content */
 .page-overlay {
     position: fixed;
