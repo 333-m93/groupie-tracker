@@ -115,7 +115,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
     margin: 0;
     position: relative;
     z-index: 1;
-    transform: translateX(1px);
+    transform: translateX(100px);
 }
 
 h1 {
@@ -163,28 +163,27 @@ button[id=btn-external]:hover {
 }
 
 .results-container {
-    background-color: rgba(240, 240, 240, 0.95);
+    background-color: rgba(240, 240, 240, 0.2);
     backdrop-filter: blur(8px);
-    max-width: 400px;
+    max-width: 720px;
     padding: 10px 40px;
     border-radius: 20px;
+    margin: 0;
     position: relative;
     z-index: 1;
-    flex: 1;
     transform: translateX(230px);
 }
 
 .concert-container {
-    background-color: rgba(240, 240, 240, 0.95);
+    background-color: rgba(240, 240, 240, 0.2);
     backdrop-filter: blur(8px);
-    max-width: 400px;
+    max-width: 720px;
     padding: 10px 40px;
     border-radius: 20px;
+    margin: 0;
     position: relative;
     z-index: 1;
-    margin-bottom: auto;
-    flex: 1;
-    margin-left: 600px;
+    margin-left: auto;
 }
 
 h4 {
