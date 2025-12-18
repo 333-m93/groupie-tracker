@@ -21,29 +21,35 @@ func Start(addr string) {
 		Photo string `json:"photo"`
 	}
 	albumImages := []AlbumImage{
-		{ID: 1, Name: "PNL", Photo: "/static/pnl.jpg"},
-		{ID: 2, Name: "Laufey", Photo: "/static/laufey.png"},
-		{ID: 3, Name: "Boa", Photo: "/static/boa.jpg"},
-		{ID: 4, Name: "Gims", Photo: "/static/gims.jpg"},
-		{ID: 5, Name: "Hamza", Photo: "/static/hamza.jpg"},
-		{ID: 6, Name: "Tyler", Photo: "/static/tyler.jpg"},
-		{ID: 7, Name: "Beabadoobee", Photo: "/static/beabadoobee.jpg"},
-		{ID: 8, Name: "Billie", Photo: "/static/billie.jpg"},
-		{ID: 9, Name: "Bob Marley", Photo: "/static/bob-marley.jpg"},
-		{ID: 10, Name: "Imogen Heap", Photo: "/static/imogen_heap.jpg"},
-		{ID: 11, Name: "Melo", Photo: "/static/Melo.jpg"},
-		{ID: 12, Name: "Vespertine", Photo: "/static/Vespertine.jpg"},
-		{ID: 13, Name: "Spider-Man", Photo: "/static/spider-man.jpg"},
-		{ID: 14, Name: "Beabadoobee 2", Photo: "/static/beabadoobee2.jpg"},
-		{ID: 15, Name: "Cigarettes After Sex", Photo: "/static/cigaretteaftersex.jpg"},
+		{ID: 1, Name: "PNL", Photo: "/static-carrousel/pnl.jpg"},
+		{ID: 2, Name: "Laufey", Photo: "/static-carrousel/laufey.png"},
+		{ID: 3, Name: "Boa", Photo: "/static-carrousel/boa.jpg"},
+		{ID: 4, Name: "Gims", Photo: "/static-carrousel/gims.jpg"},
+		{ID: 5, Name: "Hamza", Photo: "/static-carrousel/hamza.jpg"},
+		{ID: 6, Name: "Tyler", Photo: "/static-carrousel/tyler.jpg"},
+		{ID: 7, Name: "Beabadoobee", Photo: "/static-carrousel/beabadoobee.jpg"},
+		{ID: 8, Name: "Billie", Photo: "/static-carrousel/billie.jpg"},
+		{ID: 9, Name: "Bob Marley", Photo: "/static-carrousel/bob-marley.jpg"},
+		{ID: 10, Name: "Imogen Heap", Photo: "/static-carrousel/imogen_heap.jpg"},
+		{ID: 11, Name: "Melo", Photo: "/static-carrousel/Melo.jpg"},
+		{ID: 12, Name: "Vespertine", Photo: "/static-carrousel/Vespertine.jpg"},
+		{ID: 13, Name: "Spider-Man", Photo: "/static-carrousel/spider-man.jpg"},
+		{ID: 14, Name: "Beabadoobee 2", Photo: "/static-carrousel/beabadoobee2.jpg"},
+		{ID: 15, Name: "Cigarettes After Sex", Photo: "/static-carrousel/cigaretteaftersex.jpg"},
 	}
 
-	// Serve the search UI from the folder `Barre de recherche`
-	fs := http.FileServer(http.Dir("./Barre de recherche"))
+	// Serve the search UI from Front-End
+	fs := http.FileServer(http.Dir("./Front-End"))
 	mux.Handle("/", fs)
 
-	// Static assets (if referenced with /static/ in the HTML)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./Barre de recherche/static"))))
+	// Static assets for carousel images
+	mux.Handle("/static-carrousel/", http.StripPrefix("/static-carrousel/", http.FileServer(http.Dir("./Front-End/static-carrousel"))))
+
+	// Static assets for home page
+	mux.Handle("/static-home-page/", http.StripPrefix("/static-home-page/", http.FileServer(http.Dir("./Front-End/static-home-page"))))
+
+	// Back-End assets (CSS, JS)
+	mux.Handle("/Back-End/", http.StripPrefix("/Back-End/", http.FileServer(http.Dir("./Back-End"))))
 
 	// Health endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

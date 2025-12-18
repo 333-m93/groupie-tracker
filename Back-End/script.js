@@ -244,7 +244,7 @@ function renderBackgroundImages(images) {
     const slice = expanded.filter((_, i) => i % columns.length === idx)
     col.innerHTML = slice.map(img => {
       const alt = img.title || 'Image'
-      return '<div><img src="' + img.url + '" alt="' + alt + '"></div>'
+      return '<div><img src="' + img.cover + '" alt="' + alt + '"></div>'
     }).join('')
   })
 }
