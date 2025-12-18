@@ -1,0 +1,19 @@
+{
+  "albums": [
+    { "id": 1, "name": "PNL", "photo": "https://images.genius.com/1cf8aebac08a373b8a76e577fad286c3.1000x1000x1.png" },
+    { "id": 2, "name": "Laufey", "photo": "https://images.vs-static.com/H6Wpc2sd1yMQ7BRewgVMvc98i4s=/88x983:2205x2173/1900x0/Laufey_press_photos_album_artwork_PC_Gemma_Warren_c734869962/Laufey_press_photos_album_artwork_PC_Gemma_Warren_c734869962.jpeg" },
+    { "id": 3, "name": "Boa", "photo": "https://upload.wikimedia.org/wikipedia/en/c/c3/Twilight_%28B%C3%B4a_album%29.jpg" },
+    { "id": 4, "name": "Gims", "photo": "https://upload.wikimedia.org/wikipedia/en/c/cd/Le_Fl%C3%A9au.jpg" },
+    { "id": 5, "name": "Hamza", "photo": "https://www.booska-p.com/wp-content/uploads/2017/10/hamza_cover.jpg" },
+    { "id": 6, "name": "Tyler", "photo": "https://escutai.com/wp-content/uploads/2024/10/chromakopia.jpg" },
+    { "id": 7, "name": "Beabadoobee", "photo": "https://upload.wikimedia.org/wikipedia/en/f/f9/Beabadoobee_-_Loveworm.png" },
+    { "id": 8, "name": "Billie", "photo": "https://upload.wikimedia.org/wikipedia/en/a/aa/Billie_Eilish_-_Hit_Me_Hard_and_Soft.png" },
+    { "id": 9, "name": "Bob Marley", "photo": "https://m.media-amazon.com/images/I/81urR6LpmIL._SL1500_.jpg" },
+    { "id": 10, "name": "Imogen Heap", "photo": "https://f4.bcbits.com/img/a2332664183_10.jpg" },
+    { "id": 11, "name": "Melo", "photo": "https://www.radiofrance.fr/s3/cruiser-production/2022/05/989edb98-f2a3-431b-8f16-3b94ada3126b/1200x680_tiakola.jpg" },
+    { "id": 12, "name": "Vespertine", "photo": "https://m.media-amazon.com/images/I/7147zaKuNvL._SL1200_.jpg" },
+    { "id": 13, "name": "Spider-Man", "photo": "https://a3.cdn.hhv.de/items/images/generated/970x970/01088/1088991/1-metro-boomin-metro-boomin-pres-spider-man-acr-the-spider-verse.webp" },
+    { "id": 14, "name": "Beabadoobee 2", "photo": "https://upload.wikimedia.org/wikipedia/en/4/4a/Beabadoobee_-_Beatopia.png" },
+    { "id": 15, "name": "Cigarettes After Sex", "photo": "https://m.media-amazon.com/images/I/61RkEVSpOFL.jpg" }
+  ]
+}

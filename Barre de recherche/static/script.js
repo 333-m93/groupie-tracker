@@ -242,18 +242,9 @@ function renderBackgroundImages(images) {
 
   columns.forEach((col, idx) => {
     const slice = expanded.filter((_, i) => i % columns.length === idx)
-
-    // Ensure second column contains Cigarettes After Sex to fill missing spot
-    if (idx === 1) {
-      const cas = imgs.find(x => (x.title || '').toLowerCase().includes('cigarettes after sex'))
-      if (cas) {
-        slice[0] = cas
-      }
-    }
-
     col.innerHTML = slice.map(img => {
       const alt = img.title || 'Image'
-      return '<div><img src="' + img.cover + '" alt="' + alt + '" onerror="this.parentElement.style.display=\'none\'"></div>'
+      return '<div><img src="' + img.url + '" alt="' + alt + '"></div>'
     }).join('')
   })
 }
