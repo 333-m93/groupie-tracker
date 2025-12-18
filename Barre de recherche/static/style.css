@@ -2,11 +2,10 @@ body {
     font-family: Arial, Helvetica, sans-serif; 
     margin: 0;
     color: #222;
-    overflow: hidden;
     background-color: #111;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
     gap: 20px;
     padding-top: 2rem;
 }
@@ -109,20 +108,184 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
     background-color: rgba(240, 240, 240, 0.2);
     backdrop-filter: blur(8px);
     max-width: 720px;
-    padding: 10px 40px;
+    padding: 10px;
     border-radius: 20px;
     margin: 0;
     position: relative;
     z-index: 1;
     transform: translateX(0px);
+    transform:translateY(10px);
+}
+.container[id=search-container] {
+    margin-right:auto;
+    width: 90%;
+    max-width: 1400px;
+    padding: 20px 40px;
+    text-align: left;
+    transition: width 0.3s ease, padding 0.3s ease;
 }
 
+.container[id=search-container].expanded {
+    width: 90%;
+    max-width: 1400px;
+    padding: 20px 40px;
+}
+
+.search-bar {
+    display: flex;
+    gap: 10px;
+    justify-content: left;
+    margin-bottom: 15px;
+}
+#search-input {
+    width: 60%;
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 10px;
+    outline: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s;
+}
+
+#search-button:hover {
+    background-color: #60a5fa;
+}
+
+#toggle-filters-btn {
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #a78bfa;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+#toggle-filters-btn:hover {
+    background-color: #8b5cf6;
+}
+
+/* Advanced filters section */
+.advanced-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    transition: opacity 0.3s ease;
+    opacity: 1;
+}
+
+.advanced-filters.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #222;
+}
+
+.filter-group input[type="text"],
+.filter-group input[type="number"] {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    outline: none;
+    transition: box-shadow 0.2s;
+}
+
+.filter-group input[type="text"]:focus,
+.filter-group input[type="number"]:focus {
+    box-shadow: 0 0 8px rgba(147, 197, 253, 0.5);
+    border-color: #93C5FD;
+}
+/* Artist playlist container takes full width */
+#artist-playlist-container {
+    background-color: rgba(240, 240, 240, 0.2);
+    backdrop-filter: blur(8px);
+    width: 90%;
+    max-width: 1400px;
+    padding: 20px 40px;
+    border-radius: 20px;
+    margin: 20px 0;
+    position: relative;
+    z-index: 1;
+}
+
+#artist-playlist-container h2 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    text-align: center;
+    color: #222;
+}
+
+/* Grid layout for artist info cards */
+.artist-info-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 10px;
+}
+
+.artist-info-card {
+    background-color: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.artist-info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.artist-info-card h3 {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 1.3rem;
+    margin: 10px 0;
+    color: #222;
+}
+
+.artist-info-card p {
+    font-size: 0.95rem;
+    color: #444;
+    margin: 5px 0;
+}
+
+.artist-info-card .artist-photo {
+    max-width: 100%;
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin: 0 auto 10px auto;
+}
 h1 {
     font-size: 4rem;
     margin-bottom: 1rem;
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     text-align:center;
     color:#222;
+    margin-top: 10px;
+
 }
 p {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
@@ -130,215 +293,10 @@ p {
     margin-bottom: 2rem;
     text-align: left;
 }
-.search { 
-    display:flex; 
-    gap:8px;
-    text-align: center;
-}
-input[type=search] { 
-    flex:1; 
-    padding:8px;
-    text-align: center;
-}
 button { 
     padding:8px 12px;
 }
-#results ul { 
-    list-style: disc; 
-    padding-left: 20px;
-}
-
-button[id=btn-external] {
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    background-color: #0073e6;
-    color: white;
-    border: none;
-    margin-top: 3vh;
-    margin-left: 18vh;
-    
-}   
-button[id=btn-external]:hover {
-    cursor: pointer; 
-    opacity: 0.7;
-}
-
-.results-container {
-    background-color: rgba(240, 240, 240, 0.2);
-    backdrop-filter: blur(8px);
-    max-width: 720px;
-    padding: 10px 40px;
-    border-radius: 20px;
-    margin: 0;
-    position: relative;
-    z-index: 1;
-    transform: translateX(230px);
-}
-
-.concert-container {
-    background-color: rgba(240, 240, 240, 0.2);
-    backdrop-filter: blur(8px);
-    max-width: 720px;
-    padding: 10px 40px;
-    border-radius: 20px;
-    margin: 0;
-    position: relative;
-    z-index: 1;
-    margin-left: auto;
-}
-
-h4 {
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    text-align:left;
-}
-
-.artist {
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-.artist-image {
-    width: 300px;
-    height: 300ppx;
-    object-fit: cover;
-    border-radius: 10px;
-    display: block;
-    margin: 0 auto 1rem auto;
-}
-ul {
-    list-style-type: none;
-    padding: 0;
-    font-size: 1.1rem;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    background: none;
-    border-radius: 10px;
-}
-
-li {
-    text-align: left;
-    text-align: left;
-    justify-content: center;
-}
-
-.artist-select {
-    font-size: 3vh;
-    display: flex;
-    background:none;
-    border: none;
-}
-
-.artist-select:hover{ 
-    cursor: pointer; 
-    scale: 1.1;
-}
-
-p {
-    text-align: center;
-    text-decoration: none;
-}
-
-a[id=ticketmaster-link] {
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    text-decoration: none;
-    color: #0073e6;
-}
-
-/* Hidden class for collapsible filters */
-.hidden {
-    display: none;
-}
-
-/* Toggle button style */
-.toggle-btn {
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    background-color: transparent;
-    color: #0073e6;
-    border: 1px solid #0073e6;
-    padding: 8px 16px;
-    margin: 10px 0;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: all 0.3s ease;
-}
-
-.toggle-btn:hover {
-    background-color: #0073e6;
-    color: white;
-}
-
-/* Search group spacing */
-.search-group {
-    margin-bottom: 15px;
-}
-
-.search-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    font-size: 0.95rem;
-}
-
-/* Additional filters container with smooth transition */
-#additional-filters {
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-
-#additional-filters.hidden {
-    max-height: 0;
-}
-
-.about-more {
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    background-color: transparent;
-    color: #0073e6;
-    border: 1px solid #0073e6;
-    padding: 8px 16px;
-    margin: 10px 0;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: all 0.3s ease;
-    margin-left:30%;
-}
-.about-more:hover {
-    background-color: #0073e6;
-    color: white;
-}
-
-/* Selected artist image (moved from inline style) */
-.artist-photo {
-    max-width: 240px;
-    display: block;
-    margin-bottom: 8px;
-}
-
-/* Album grid styles */
-.album-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 12px;
-    margin-top: 12px;
-}
-
-.album-card {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    overflow: hidden;
-    text-align: center;
-    backdrop-filter: blur(4px);
-}
-
-.album-card img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    display: block;
-}
-
-.album-card figcaption {
-    font-size: 0.85rem;
-    padding: 6px 8px;
-}
+/* removed legacy/unused rules (results, external buttons, filters, album grid, etc.) */
 
 /* Full-page blur overlay above all content */
 .page-overlay {
