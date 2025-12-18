@@ -187,11 +187,12 @@ async function loadAlbumImages() {
       if (!res.ok) throw new Error('Réponse /album-images inattendue: ' + res.status)
       const payload = await res.json()
       const imgs = (payload && payload.images) || []
-      albumImagesCache = imgs.map((img, idx) => ({
-        title: img.title || 'Album ' + (idx + 1),
-        cover: img.url || '',
-        link: img.url || '',
-        url: img.url || '',
+      albumImagesCache = imgs.map((img) => ({
+        id: img.id,
+        title: img.name || 'Album sans nom',
+        cover: img.photo || '',
+        link: img.photo || '',
+        url: img.photo || '',
       })).filter(x => x.cover)
       return albumImagesCache
     })

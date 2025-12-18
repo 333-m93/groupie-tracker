@@ -3,11 +3,8 @@ package serveur
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
-	neturl "net/url"
 	"os"
 	"os/signal"
 	"time"
@@ -17,27 +14,28 @@ import (
 func Start(addr string) {
 	mux := http.NewServeMux()
 
-	// Static album images served from local assets
+	// Album Image structure with ID, Name, and Photo URL
 	type AlbumImage struct {
-		Title string `json:"title"`
-		URL   string `json:"url"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Photo string `json:"photo"`
 	}
 	albumImages := []AlbumImage{
-		{Title: "PNL", URL: "/static/pnl.jpg"},
-		{Title: "Laufey", URL: "/static/laufey.png"},
-		{Title: "Boa", URL: "/static/boa.jpg"},
-		{Title: "Gims", URL: "/static/gims.jpg"},
-		{Title: "Hamza", URL: "/static/hamza.jpg"},
-		{Title: "Tyler", URL: "/static/tyler.jpg"},
-		{Title: "Beabadoobee", URL: "/static/beabadoobee.jpg"},
-		{Title: "Billie", URL: "/static/billie.jpg"},
-		{Title: "Bob Marley", URL: "/static/bob-marley.jpg"},
-		{Title: "Imogen Heap", URL: "/static/imogen_heap.jpg"},
-		{Title: "Melo", URL: "/static/Melo.jpg"},
-		{Title: "Vespertine", URL: "/static/Vespertine.jpg"},
-		{Title: "Spider-Man", URL: "/static/spider-man.jpg"},
-		{Title: "Beabadoobee 2", URL: "/static/beabadoobee2.jpg"},
-		{Title: "Cigarettes After Sex", URL: "/static/cigaretteaftersex.jpg"},
+		{ID: 1, Name: "PNL", Photo: "/static/pnl.jpg"},
+		{ID: 2, Name: "Laufey", Photo: "/static/laufey.png"},
+		{ID: 3, Name: "Boa", Photo: "/static/boa.jpg"},
+		{ID: 4, Name: "Gims", Photo: "/static/gims.jpg"},
+		{ID: 5, Name: "Hamza", Photo: "/static/hamza.jpg"},
+		{ID: 6, Name: "Tyler", Photo: "/static/tyler.jpg"},
+		{ID: 7, Name: "Beabadoobee", Photo: "/static/beabadoobee.jpg"},
+		{ID: 8, Name: "Billie", Photo: "/static/billie.jpg"},
+		{ID: 9, Name: "Bob Marley", Photo: "/static/bob-marley.jpg"},
+		{ID: 10, Name: "Imogen Heap", Photo: "/static/imogen_heap.jpg"},
+		{ID: 11, Name: "Melo", Photo: "/static/Melo.jpg"},
+		{ID: 12, Name: "Vespertine", Photo: "/static/Vespertine.jpg"},
+		{ID: 13, Name: "Spider-Man", Photo: "/static/spider-man.jpg"},
+		{ID: 14, Name: "Beabadoobee 2", Photo: "/static/beabadoobee2.jpg"},
+		{ID: 15, Name: "Cigarettes After Sex", Photo: "/static/cigaretteaftersex.jpg"},
 	}
 
 	// Serve the search UI from the folder `Barre de recherche`
@@ -94,7 +92,7 @@ func Start(addr string) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"results": results})
 	})
 
-	// External search endpoint expected by the frontend button
+	// Search endpoint using only local data
 	// GET /external-search?q=term
 	mux.HandleFunc("/external-search", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -119,38 +117,20 @@ func Start(addr string) {
 
 		q := r.URL.Query().Get("q")
 
-		// Try Discogs first
-		artistsResp, err := discogsSearch(q)
-		if err != nil {
-			log.Printf("discogs search error: %v", err)
-		}
-
 		var out []ExtArtist
-		for _, a := range artistsResp {
-			out = append(out, ExtArtist{
-				Name: a.Name,
-				URL:  a.ResourceURL,
-				Images: func() []Image {
-					if a.Thumb != "" {
-						return []Image{{URL: a.Thumb}}
-					}
-					return nil
-				}(),
-			})
-		}
-
-		// If Discogs empty or failed, fallback to local data
-		if len(out) == 0 {
-			for _, ai := range albumImages {
-				if q == "" || containsIgnoreCase(ai.Title, q) {
-					out = append(out, ExtArtist{Name: ai.Title, Images: []Image{{URL: ai.URL}}})
-				}
+		
+		// Search in local album images
+		for _, ai := range albumImages {
+			if q == "" || containsIgnoreCase(ai.Name, q) {
+				out = append(out, ExtArtist{Name: ai.Name, Images: []Image{{URL: ai.Photo}}})
 			}
-			if len(out) == 0 {
-				for _, a := range artists {
-					if q == "" || containsIgnoreCase(a.Name, q) {
-						out = append(out, ExtArtist{Name: a.Name})
-					}
+		}
+		
+		// If nothing found in album images, search in artists
+		if len(out) == 0 {
+			for _, a := range artists {
+				if q == "" || containsIgnoreCase(a.Name, q) {
+					out = append(out, ExtArtist{Name: a.Name})
 				}
 			}
 		}
@@ -214,57 +194,6 @@ func Start(addr string) {
 		log.Fatalf("serveur: Shutdown: %v", err)
 	}
 	log.Println("serveur: exited")
-}
-
-// discogsSearch calls the Discogs database search API and returns normalized results.
-// Uses the user-provided token. For simplicity, this searches type=artist by q.
-type discogsResult struct {
-	Name        string
-	ResourceURL string
-	Thumb       string
-}
-
-func discogsSearch(q string) ([]discogsResult, error) {
-	token := "KRDsrkapunkrrKnOMADBDawunVlLPtqGpqRzXMfm" // Provided by user
-	if token == "" {
-		return nil, fmt.Errorf("discogs token missing")
-	}
-	reqURL := "https://api.discogs.com/database/search?type=artist&q=" + neturl.QueryEscape(q)
-	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Discogs token="+token)
-	req.Header.Set("User-Agent", "GroupieTracker/1.0 +https://example.com")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("discogs status %d: %s", resp.StatusCode, string(b))
-	}
-	var payload struct {
-		Results []struct {
-			Title       string `json:"title"`
-			ResourceURL string `json:"resource_url"`
-			Thumb       string `json:"thumb"`
-		} `json:"results"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, err
-	}
-	out := make([]discogsResult, 0, len(payload.Results))
-	for _, r := range payload.Results {
-		out = append(out, discogsResult{
-			Name:        r.Title,
-			ResourceURL: r.ResourceURL,
-			Thumb:       r.Thumb,
-		})
-	}
-	return out, nil
 }
 
 // containsIgnoreCase reports whether s contains sub case-insensitively.
