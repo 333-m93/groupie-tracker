@@ -114,14 +114,15 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
     margin: 0;
     position: relative;
     z-index: 1;
-    transform: translateX(100px);
+    transform: translateX(0px);
 }
 
 h1 {
-    font-size: 2rem;
+    font-size: 4rem;
     margin-bottom: 1rem;
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     text-align:center;
+    color:#222;
 }
 p {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
