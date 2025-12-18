@@ -1,4 +1,13 @@
 
+// simple debounce helper
+function debounce(fn, delay = 400) {
+  let t
+  return (...args) => {
+    clearTimeout(t)
+    t = setTimeout(() => fn(...args), delay)
+  }
+}
+
 // helper: render results for local /search endpoint
 function renderLocalResults(data, out) {
   if (!data || !data.results || data.results.length === 0) {
@@ -56,9 +65,9 @@ function renderSelectedArtist(artist) {
   }
 
   let infoHtml = ''
-  if (imgUrl) infoHtml += '<img src="' + imgUrl + '" alt="' + name + '" style="max-width:240px;display:block;margin-bottom:8px">'
+    if (imgUrl) infoHtml += '<img class="artist-photo" src="' + imgUrl + '" alt="' + name + '">'
   infoHtml += '<h3>' + name + '</h3>'
-  if (url) infoHtml += '<p><a href="' + url + '" target="_blank" id="ticketmaster-link">Voir sur Ticketmaster</a></p>'
+  if (url) infoHtml += '<p><a href="' + url + '" target="_blank" id="ticketmaster-link"></a></p>'
   aInfo.innerHTML = infoHtml
 
   // events
@@ -95,9 +104,8 @@ bindIfExists('btn', async () => {
   }
 })
 
-// Ticketmaster external search with multiple criteria
-bindIfExists('btn-external', async () => {
-  // Collect all search criteria
+// Ticketmaster/Discogs external search with multiple criteria
+async function externalSearch() {
   const artistName = document.getElementById('artist-name')?.value.trim() || ''
   const creationDate = document.getElementById('creation-date')?.value.trim() || ''
   const songName = document.getElementById('song-name')?.value.trim() || ''
@@ -105,25 +113,17 @@ bindIfExists('btn-external', async () => {
   const members = document.getElementById('members')?.value.trim() || ''
 
   const out = document.getElementById('results')
-  
-  // Check if at least one field is filled
+  if (!out) return
+
   if (!artistName && !creationDate && !songName && !firstAlbum && !members) {
     out.textContent = 'Veuillez remplir au moins un champ de recherche'
     return
   }
 
   out.textContent = 'Recherche en cours...'
-  
-  try {
-    // Build query string with all filled fields
-    const params = new URLSearchParams()
-    if (artistName) params.set('artist', artistName)
-    if (creationDate) params.set('year', creationDate)
-    if (songName) params.set('song', songName)
-    if (firstAlbum) params.set('album', firstAlbum)
-    if (members) params.set('member', members)
 
-    // For now, use artist name as primary search (you can adapt server to handle multi-criteria)
+  try {
+    // Use artist name as primary query (server can be extended for full multi-criteria)
     const searchQuery = artistName || songName || firstAlbum || members
     const res = await fetch('/external-search?q=' + encodeURIComponent(searchQuery))
     if (!res.ok) {
@@ -136,18 +136,22 @@ bindIfExists('btn-external', async () => {
   } catch (err) {
     out.textContent = 'Erreur: ' + err.message
   }
-})
+}
 
-// Trigger external search on Enter key for all search inputs
+bindIfExists('btn-external', externalSearch)
+
+// Trigger external search on Enter key and on input change (debounced) for all search inputs
 const searchInputs = ['artist-name', 'creation-date', 'song-name', 'first-album', 'members']
+const debouncedExternalSearch = debounce(externalSearch, 500)
+
 searchInputs.forEach(inputId => {
   const input = document.getElementById(inputId)
   if (input) {
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const btnExternal = document.getElementById('btn-external')
-        if (btnExternal) btnExternal.click()
-      }
+      if (e.key === 'Enter') externalSearch()
+    })
+    input.addEventListener('input', () => {
+      debouncedExternalSearch()
     })
   }
 })
