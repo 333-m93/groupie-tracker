@@ -20,7 +20,6 @@ body {
     height: 100vh;
     overflow: hidden;
     display: flex;
-    gap: 10px;
     padding: 10px;
     background-color: #111;
     z-index: -1;
@@ -29,7 +28,7 @@ body {
 
 .bg-column {
     position: relative;
-    width: 33.33%;
+    width: 25%;
     height: 100%;
     overflow: hidden;
     background-color: #222;
@@ -42,11 +41,16 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 50px;
     animation: bg-defilement 17s linear infinite;
 }
 
 .bg-column:nth-child(2) .bg-scrolling {
+    animation: bg-defilement-inverse 16s linear infinite;
+}
+
+/* For 4 columns: alternate direction on 2 and 4 */
+.bg-column:nth-child(4) .bg-scrolling {
     animation: bg-defilement-inverse 16s linear infinite;
 }
 
@@ -96,7 +100,7 @@ body {
 }
 
 /* Contenu principal */
-body > :not(.bg-scrolling-container) {
+body > :not(.bg-scrolling-container):not(.page-overlay) {
     position: relative;
     z-index: 1;
 }
@@ -110,7 +114,7 @@ body > :not(.bg-scrolling-container) {
     margin: 0;
     position: relative;
     z-index: 1;
-    transform: translateX(-100px);
+    transform: translateX(0px);
 }
 
 h1 {
@@ -118,6 +122,7 @@ h1 {
     margin-bottom: 1rem;
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     text-align:center;
+    color:#222;
 }
 p {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
@@ -158,28 +163,27 @@ button[id=btn-external]:hover {
 }
 
 .results-container {
-    background-color: rgba(240, 240, 240, 0.95);
+    background-color: rgba(240, 240, 240, 0.2);
     backdrop-filter: blur(8px);
-    max-width: 400px;
+    max-width: 720px;
     padding: 10px 40px;
     border-radius: 20px;
+    margin: 0;
     position: relative;
     z-index: 1;
-    flex: 1;
     transform: translateX(230px);
 }
 
 .concert-container {
-    background-color: rgba(240, 240, 240, 0.95);
+    background-color: rgba(240, 240, 240, 0.2);
     backdrop-filter: blur(8px);
-    max-width: 400px;
+    max-width: 720px;
     padding: 10px 40px;
     border-radius: 20px;
+    margin: 0;
     position: relative;
     z-index: 1;
-    margin-bottom: auto;
-    flex: 1;
-    margin-left: 600px;
+    margin-left: auto;
 }
 
 h4 {
@@ -193,7 +197,14 @@ h4 {
     font-weight: bold;
     font-size: 1.2rem;
 }
-
+.artist-image {
+    width: 300px;
+    height: 300ppx;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto 1rem auto;
+}
 ul {
     list-style-type: none;
     padding: 0;
@@ -294,35 +305,48 @@ a[id=ticketmaster-link] {
     color: white;
 }
 
-.albums-block h3 {
-    margin-top: 12px;
+/* Selected artist image (moved from inline style) */
+.artist-photo {
+    max-width: 240px;
+    display: block;
     margin-bottom: 8px;
-    font-size: 1.2rem;
 }
 
+/* Album grid styles */
 .album-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 12px;
-    margin-top: 8px;
+    margin-top: 12px;
 }
 
 .album-card {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
-    padding: 8px;
+    overflow: hidden;
     text-align: center;
+    backdrop-filter: blur(4px);
 }
 
 .album-card img {
     width: 100%;
-    border-radius: 8px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
     display: block;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 .album-card figcaption {
-    margin-top: 6px;
-    font-size: 0.9rem;
-    color: #222;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+}
+
+/* Full-page blur overlay above all content */
+.page-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(17, 17, 17, 0.15);
+    pointer-events: none; /* Pass clicks to underlying content. Remove if you want to block interactions */
 }
