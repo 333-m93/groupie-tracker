@@ -1,71 +1,111 @@
-// Minimal JS (no API calls): client-side filter of artist cards
-(function () {
-  function debounce(fn, delay) {
-    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay) }
-  }
+/**
+ * SpotMyArtist - Client-side artist filtering
+ * Pure vanilla JS with no external dependencies
+ */
 
-  // Mock data with artist info for filtering
-  const artistData = {
+(function () {
+  // ===== CONSTANTS =====
+  const DEBOUNCE_DELAY = 300;
+
+  const ARTIST_DATABASE = {
     'pnl': { year: 2015, members: 2, genre: 'Hip-hop français' },
     'tyler, the creator': { year: 2007, members: 1, genre: 'Hip-hop alternatif' },
     'billie eilish': { year: 2015, members: 1, genre: 'Pop alternative' },
     'beabadoobee': { year: 2013, members: 1, genre: 'Indie rock' }
+  };
+
+  // ===== UTILITY FUNCTIONS =====
+
+  /**
+   * Debounce function to limit function calls
+   */
+  function debounce(fn, delay) {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
+    };
   }
 
+  /**
+   * Get artist key from card text
+   */
   function getArtistKey(cardText) {
-    const title = cardText.toLowerCase()
-    for (const key in artistData) {
-      if (title.includes(key)) return key
+    const lowerText = cardText.toLowerCase();
+    for (const key in ARTIST_DATABASE) {
+      if (lowerText.includes(key)) return key;
     }
-    return null
+    return null;
   }
 
+  /**
+   * Check if artist matches all filters
+   */
+  function matchesFilters(cardText, query, year, members, genre) {
+    const lowerText = cardText.toLowerCase();
+    const key = getArtistKey(lowerText);
+    const artistData = key ? ARTIST_DATABASE[key] : null;
+
+    // Name filter
+    if (query && !lowerText.includes(query)) return false;
+
+    // Year filter
+    if (year && artistData && artistData.year !== parseInt(year, 10)) return false;
+
+    // Members filter
+    if (members && artistData && artistData.members !== parseInt(members, 10)) return false;
+
+    // Genre filter
+    if (genre && artistData && !artistData.genre.toLowerCase().includes(genre)) return false;
+
+    return true;
+  }
+
+  /**
+   * Apply filters to all artist cards
+   */
   function filterArtistCards() {
-    const query = (document.getElementById('search-input')?.value || '').toLowerCase()
-    const year = document.getElementById('filter-creation-date')?.value
-    const members = document.getElementById('filter-members')?.value
-    const genre = (document.getElementById('filter-genre')?.value || '').toLowerCase()
+    const query = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const year = document.getElementById('filter-creation-date')?.value;
+    const members = document.getElementById('filter-members')?.value;
+    const genre = (document.getElementById('filter-genre')?.value || '').toLowerCase();
 
-    const cards = document.querySelectorAll('#artist-playlist-container .artist-info-card')
+    const cards = document.querySelectorAll('#artist-playlist-container .artist-info-card');
     cards.forEach(card => {
-      const text = card.textContent.toLowerCase()
-      const key = getArtistKey(text)
-      const data = key ? artistData[key] : null
-
-      let matches = !query || text.includes(query)
-      if (year && data && data.year !== parseInt(year, 10)) matches = false
-      if (members && data && data.members !== parseInt(members, 10)) matches = false
-      if (genre && data && !data.genre.toLowerCase().includes(genre)) matches = false
-
-      card.style.display = matches ? '' : 'none'
-    })
+      const isVisible = matchesFilters(card.textContent, query, year, members, genre);
+      card.style.display = isVisible ? '' : 'none';
+    });
   }
 
-  // Search input debounced
-  const input = document.getElementById('search-input')
-  const btn = document.getElementById('search-button')
-  const debounced = debounce(filterArtistCards, 300)
+  // ===== DOM ELEMENTS =====
+  const searchInput = document.getElementById('search-input');
+  const toggleFiltersBtn = document.getElementById('toggle-filters-btn');
+  const searchContainer = document.getElementById('search-container');
+  const advancedFilters = document.getElementById('advanced-filters');
 
-  if (input) input.addEventListener('input', debounced)
-  if (btn) btn.addEventListener('click', filterArtistCards)
+  // ===== EVENT LISTENERS =====
 
-  // Toggle advanced filters
-  const toggleBtn = document.getElementById('toggle-filters-btn')
-  const filterContainer = document.getElementById('search-container')
-  const advancedFilters = document.getElementById('advanced-filters')
-
-  if (toggleBtn && advancedFilters) {
-    toggleBtn.addEventListener('click', () => {
-      advancedFilters.classList.toggle('hidden')
-      filterContainer.classList.toggle('expanded')
-    })
+  // Search input: debounced filtering
+  if (searchInput) {
+    const debouncedFilter = debounce(filterArtistCards, DEBOUNCE_DELAY);
+    searchInput.addEventListener('input', debouncedFilter);
   }
 
-  // Trigger filter on filter input changes
-  const filterInputs = ['filter-creation-date', 'filter-members', 'filter-genre']
-  filterInputs.forEach(id => {
-    const el = document.getElementById(id)
-    if (el) el.addEventListener('change', filterArtistCards)
-    if (el) el.addEventListener('input', debounced)
-  })
-})()
+  // Toggle filters visibility and container expansion
+  if (toggleFiltersBtn && advancedFilters) {
+    toggleFiltersBtn.addEventListener('click', () => {
+      advancedFilters.classList.toggle('hidden');
+      searchContainer.classList.toggle('expanded');
+    });
+  }
+
+  // Filter inputs: instant filtering on change, debounced on input
+  const filterInputIds = ['filter-creation-date', 'filter-members', 'filter-genre'];
+  filterInputIds.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('change', filterArtistCards);
+      element.addEventListener('input', debounce(filterArtistCards, DEBOUNCE_DELAY));
+    }
+  });
+})();
