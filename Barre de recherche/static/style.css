@@ -120,7 +120,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
 
 .container h1 {
   font-size: 4rem;
-  margin: 10px 0 1rem;
+  margin: 10px 10rem 1rem; 
   text-align: center;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
   color: var(--text-dark);
@@ -300,4 +300,24 @@ button {
   margin: 0 auto 10px;
   display: block;
   max-width: 100%;
+}
+
+/* ===== ARTIST PAGE ===== */
+.back-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.artist-detail-container {
+  max-width: 800px;
+}
+
+.artist-detail-image {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 15px;
+  display: block;
+  margin: 0 auto 20px;
 }

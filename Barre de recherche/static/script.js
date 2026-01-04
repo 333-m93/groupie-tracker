@@ -108,4 +108,17 @@
       element.addEventListener('input', debounce(filterArtistCards, DEBOUNCE_DELAY));
     }
   });
+
+  // ===== ARTIST CARDS CLICK => REDIRECT =====
+  const artistCards = document.querySelectorAll('.artist-info-card');
+  artistCards.forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const key = getArtistKey(card.textContent);
+      if (key) {
+        const cleanKey = key.replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+        window.location.href = `artist.html?name=${cleanKey}`;
+      }
+    });
+  });
 })();
