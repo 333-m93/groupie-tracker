@@ -10,6 +10,8 @@ import (
 	neturl "net/url"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -75,6 +77,11 @@ func Start(addr string) {
 		{Title: "Beabadoobee 2", URL: "/static/beabadoobee2.jpg"},
 		{Title: "Cigarettes After Sex", URL: "/static/cigaretteaftersex.jpg"},
 	}
+
+	// Charger les artistes de l'API au démarrage
+	go loadGroupieArtists()
+	go loadLocations()
+	go loadRelations()
 
 	// Serve the search UI from the folder `Barre de recherche`
 	fs := http.FileServer(http.Dir("./Barre de recherche"))
@@ -218,38 +225,67 @@ func Start(addr string) {
 
 		q := r.URL.Query().Get("q")
 
-		// Try Discogs first
-		artistsResp, err := discogsSearch(q)
-		if err != nil {
-			log.Printf("discogs search error: %v", err)
-		}
+		artistsCacheLock.RLock()
+		allArtists := artistsCache
+		artistsCacheLock.RUnlock()
 
 		var out []ExtArtist
-		for _, a := range artistsResp {
-			out = append(out, ExtArtist{
-				Name: a.Name,
-				URL:  a.ResourceURL,
-				Images: func() []Image {
-					if a.Thumb != "" {
-						return []Image{{URL: a.Thumb}}
+
+		// Rechercher dans les artistes Groupie Tracker
+		for _, a := range allArtists {
+			if q == "" || containsIgnoreCase(a.Name, q) {
+				extArtist := ExtArtist{
+					Name: a.Name,
+				}
+
+				if a.Image != "" {
+					extArtist.Images = []Image{{URL: a.Image}}
+				}
+
+				// Récupérer les relations pour les concerts
+				relations, err := fetchRelations(a.ID)
+				if err == nil && relations != nil {
+					for loc, dates := range relations.DatesLocations {
+						for _, date := range dates {
+							extArtist.Events = append(extArtist.Events, Event{
+								Date:  date,
+								Venue: loc,
+								Name:  a.Name + " Concert",
+							})
+						}
 					}
-					return nil
-				}(),
-			})
+				}
+
+				out = append(out, extArtist)
+			}
 		}
 
-		// If Discogs empty or failed, fallback to local data
+		// Si aucun résultat dans Groupie Tracker, fallback sur Discogs
+		if len(out) == 0 {
+			artistsResp, err := discogsSearch(q)
+			if err != nil {
+				log.Printf("discogs search error: %v", err)
+			}
+
+			for _, a := range artistsResp {
+				out = append(out, ExtArtist{
+					Name: a.Name,
+					URL:  a.ResourceURL,
+					Images: func() []Image {
+						if a.Thumb != "" {
+							return []Image{{URL: a.Thumb}}
+						}
+						return nil
+					}(),
+				})
+			}
+		}
+
+		// Fallback final aux images locales
 		if len(out) == 0 {
 			for _, ai := range albumImages {
 				if q == "" || containsIgnoreCase(ai.Title, q) {
 					out = append(out, ExtArtist{Name: ai.Title, Images: []Image{{URL: ai.URL}}})
-				}
-			}
-			if len(out) == 0 {
-				for _, a := range artists {
-					if q == "" || containsIgnoreCase(a.Name, q) {
-						out = append(out, ExtArtist{Name: a.Name})
-					}
 				}
 			}
 		}
@@ -268,6 +304,50 @@ func Start(addr string) {
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"images": albumImages})
+	})
+
+	// Locations endpoint
+	mux.HandleFunc("/locations", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		locationsCacheLock.RLock()
+		locations := locationsCache
+		locationsCacheLock.RUnlock()
+
+		if len(locations) == 0 {
+			loadLocations()
+			locationsCacheLock.RLock()
+			locations = locationsCache
+			locationsCacheLock.RUnlock()
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(locations)
+	})
+
+	// Relations endpoint
+	mux.HandleFunc("/relations", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		relationsCacheLock.RLock()
+		relations := relationsCache
+		relationsCacheLock.RUnlock()
+
+		if len(relations) == 0 {
+			loadRelations()
+			relationsCacheLock.RLock()
+			relations = relationsCache
+			relationsCacheLock.RUnlock()
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(relations)
 	})
 
 	// Events endpoint (kept minimal)
@@ -313,6 +393,165 @@ func Start(addr string) {
 		log.Fatalf("serveur: Shutdown: %v", err)
 	}
 	log.Println("serveur: exited")
+}
+
+// loadGroupieArtists charge les artistes depuis l'API Groupie Tracker
+func loadGroupieArtists() {
+	const apiURL = "https://groupietrackers.herokuapp.com/api/artists"
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Erreur lors du chargement des artistes: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Code de statut inattendu: %d", resp.StatusCode)
+		return
+	}
+
+	var artists []GroupieArtist
+	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
+		log.Printf("Erreur lors du décodage JSON: %v", err)
+		return
+	}
+
+	artistsCacheLock.Lock()
+	artistsCache = artists
+	artistsCacheLock.Unlock()
+
+	log.Printf("✓ %d artistes chargés depuis l'API Groupie Tracker", len(artists))
+}
+
+// loadLocations charge les lieux des concerts depuis l'API Groupie Tracker
+func loadLocations() {
+	const apiURL = "https://groupietrackers.herokuapp.com/api/locations"
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Erreur lors du chargement des locations: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Code de statut inattendu: %d", resp.StatusCode)
+		return
+	}
+
+	// L'API retourne: { "index": [ {...}, {...}, ... ] }
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		log.Printf("Erreur lors du décodage JSON locations: %v", err)
+		return
+	}
+
+	var locations []map[string]interface{}
+
+	// Extraire le tableau "index" s'il existe
+	if indexData, ok := response["index"]; ok {
+		if arr, ok := indexData.([]interface{}); ok {
+			for _, item := range arr {
+				if m, ok := item.(map[string]interface{}); ok {
+					locations = append(locations, m)
+				}
+			}
+		}
+	}
+
+	locationsCacheLock.Lock()
+	locationsCache = locations
+	locationsCacheLock.Unlock()
+
+	log.Printf("✓ %d locations chargées depuis l'API Groupie Tracker", len(locations))
+}
+
+// loadRelations charge les relations dates-lieux depuis l'API Groupie Tracker
+func loadRelations() {
+	const apiURL = "https://groupietrackers.herokuapp.com/api/relation"
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Erreur lors du chargement des relations: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Code de statut inattendu: %d", resp.StatusCode)
+		return
+	}
+
+	// L'API retourne: { "index": [ {...}, {...}, ... ] }
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		log.Printf("Erreur lors du décodage JSON relations: %v", err)
+		return
+	}
+
+	var relations []map[string]interface{}
+
+	// Extraire le tableau "index" s'il existe
+	if indexData, ok := response["index"]; ok {
+		if arr, ok := indexData.([]interface{}); ok {
+			for _, item := range arr {
+				if m, ok := item.(map[string]interface{}); ok {
+					relations = append(relations, m)
+				}
+			}
+		}
+	}
+
+	relationsCacheLock.Lock()
+	relationsCache = relations
+	relationsCacheLock.Unlock()
+
+	log.Printf("✓ %d relations chargées depuis l'API Groupie Tracker", len(relations))
+}
+
+// fetchArtistByID récupère un artiste spécifique par son ID
+func fetchArtistByID(id int) (GroupieArtist, error) {
+	url := fmt.Sprintf("https://groupietrackers.herokuapp.com/api/artists/%d", id)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return GroupieArtist{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return GroupieArtist{}, fmt.Errorf("code de statut: %d", resp.StatusCode)
+	}
+
+	var artist GroupieArtist
+	if err := json.NewDecoder(resp.Body).Decode(&artist); err != nil {
+		return GroupieArtist{}, err
+	}
+
+	return artist, nil
+}
+
+// fetchRelations récupère les relations (dates-lieux) pour un artiste
+func fetchRelations(artistID int) (*Relations, error) {
+	url := fmt.Sprintf("https://groupietrackers.herokuapp.com/api/relation/%d", artistID)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("code de statut: %d", resp.StatusCode)
+	}
+
+	var relations Relations
+	if err := json.NewDecoder(resp.Body).Decode(&relations); err != nil {
+		return nil, err
+	}
+
+	return &relations, nil
 }
 
 // discogsSearch calls the Discogs database search API and returns normalized results.
