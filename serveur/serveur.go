@@ -13,6 +13,42 @@ import (
 	"time"
 )
 
+// GroupieArtist représente les données de l'API Groupie Tracker
+type GroupieArtist struct {
+	ID           int      `json:"id"`
+	Image        string   `json:"image"`
+	Name         string   `json:"name"`
+	Members      []string `json:"members"`
+	CreationDate int      `json:"creationDate"`
+	FirstAlbum   string   `json:"firstAlbum"`
+	Locations    string   `json:"locations"`
+	ConcertDates string   `json:"concertDates"`
+	Relations    string   `json:"relations"`
+}
+
+// Locations structure pour les lieux de concert
+type Locations struct {
+	ID        int      `json:"id"`
+	Locations []string `json:"locations"`
+	Dates     string   `json:"dates"`
+}
+
+// Relations structure pour les relations dates-lieux
+type Relations struct {
+	ID             int                 `json:"id"`
+	DatesLocations map[string][]string `json:"datesLocations"`
+}
+
+// Cache global pour les artistes
+var (
+	artistsCache       []GroupieArtist
+	locationsCache     []map[string]interface{}
+	relationsCache     []map[string]interface{}
+	artistsCacheLock   sync.RWMutex
+	locationsCacheLock sync.RWMutex
+	relationsCacheLock sync.RWMutex
+)
+
 // Start launches the HTTP server and blocks until shutdown.
 func Start(addr string) {
 	mux := http.NewServeMux()
@@ -53,26 +89,82 @@ func Start(addr string) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// In-memory sample artists to search
-	type Artist struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-	artists := []Artist{
-		{ID: 1, Name: "The Rolling Codes"},
-		{ID: 2, Name: "Null Pointer Sisters"},
-		{ID: 3, Name: "Golang Orchestra"},
-		{ID: 4, Name: "Async & The Awaiters"},
-	}
-
-	// Artists endpoint (list)
+	// Artists endpoint depuis Groupie Tracker API
 	mux.HandleFunc("/artists", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
 			return
 		}
+
+		artistsCacheLock.RLock()
+		artists := artistsCache
+		artistsCacheLock.RUnlock()
+
+		if len(artists) == 0 {
+			// Essayer de recharger si le cache est vide
+			loadGroupieArtists()
+			artistsCacheLock.RLock()
+			artists = artistsCache
+			artistsCacheLock.RUnlock()
+		}
+
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(artists)
+	})
+
+	// Artist by ID endpoint
+	mux.HandleFunc("/artist/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Extraire l'ID de l'URL
+		idStr := strings.TrimPrefix(r.URL.Path, "/artist/")
+		var id int
+		fmt.Sscanf(idStr, "%d", &id)
+
+		if id <= 0 {
+			http.Error(w, "ID invalide", http.StatusBadRequest)
+			return
+		}
+
+		artist, err := fetchArtistByID(id)
+		if err != nil {
+			http.Error(w, "Artiste non trouvé", http.StatusNotFound)
+			return
+		}
+
+		// Récupérer les relations pour les dates de concert
+		relations, _ := fetchRelations(id)
+
+		// Créer une réponse enrichie
+		type ArtistResponse struct {
+			GroupieArtist
+			ConcertInfo []struct {
+				Location string   `json:"location"`
+				Dates    []string `json:"dates"`
+			} `json:"concertInfo,omitempty"`
+		}
+
+		response := ArtistResponse{
+			GroupieArtist: artist,
+		}
+
+		if relations != nil && len(relations.DatesLocations) > 0 {
+			for loc, dates := range relations.DatesLocations {
+				response.ConcertInfo = append(response.ConcertInfo, struct {
+					Location string   `json:"location"`
+					Dates    []string `json:"dates"`
+				}{
+					Location: loc,
+					Dates:    dates,
+				})
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Search endpoint: GET /search?q=term
@@ -82,13 +174,20 @@ func Start(addr string) {
 			return
 		}
 		q := r.URL.Query().Get("q")
-		results := []Artist{}
+
+		artistsCacheLock.RLock()
+		allArtists := artistsCache
+		artistsCacheLock.RUnlock()
+
+		results := []GroupieArtist{}
 		if q != "" {
-			for _, a := range artists {
+			for _, a := range allArtists {
 				if containsIgnoreCase(a.Name, q) {
 					results = append(results, a)
 				}
 			}
+		} else {
+			results = allArtists
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"results": results})
