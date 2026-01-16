@@ -2,25 +2,375 @@ package serveur
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 	"time"
+)
+
+// GroupieArtist représente les données de l'API Groupie Tracker
+type GroupieArtist struct {
+	ID           int      `json:"id"`
+	Image        string   `json:"image"`
+	Name         string   `json:"name"`
+	Members      []string `json:"members"`
+	CreationDate int      `json:"creationDate"`
+	FirstAlbum   string   `json:"firstAlbum"`
+	Locations    string   `json:"locations"`
+	ConcertDates string   `json:"concertDates"`
+	Relations    string   `json:"relations"`
+}
+
+// Locations structure pour les lieux de concert
+type Locations struct {
+	ID        int      `json:"id"`
+	Locations []string `json:"locations"`
+	Dates     string   `json:"dates"`
+}
+
+// Relations structure pour les relations dates-lieux
+type Relations struct {
+	ID             int                 `json:"id"`
+	DatesLocations map[string][]string `json:"datesLocations"`
+}
+
+// Cache global pour les artistes
+var (
+	artistsCache       []GroupieArtist
+	locationsCache     []map[string]interface{}
+	relationsCache     []map[string]interface{}
+	artistsCacheLock   sync.RWMutex
+	locationsCacheLock sync.RWMutex
+	relationsCacheLock sync.RWMutex
 )
 
 // Start launches the HTTP server and blocks until shutdown.
 func Start(addr string) {
 	mux := http.NewServeMux()
 
-	// Serve the Front-End at root
-	mux.Handle("/", http.FileServer(http.Dir("./Front-End")))
+	// Static album images served from local assets
+	type AlbumImage struct {
+		Title string `json:"title"`
+		URL   string `json:"url"`
+	}
+	albumImages := []AlbumImage{
+		{Title: "PNL", URL: "/static/pnl.jpg"},
+		{Title: "Laufey", URL: "/static/laufey.png"},
+		{Title: "Boa", URL: "/static/boa.jpg"},
+		{Title: "Gims", URL: "/static/gims.jpg"},
+		{Title: "Hamza", URL: "/static/hamza.jpg"},
+		{Title: "Tyler", URL: "/static/tyler.jpg"},
+		{Title: "Beabadoobee", URL: "/static/beabadoobee.jpg"},
+		{Title: "Billie", URL: "/static/billie.jpg"},
+		{Title: "Bob Marley", URL: "/static/bob-marley.jpg"},
+		{Title: "Imogen Heap", URL: "/static/imogen_heap.jpg"},
+		{Title: "Melo", URL: "/static/Melo.jpg"},
+		{Title: "Vespertine", URL: "/static/Vespertine.jpg"},
+		{Title: "Spider-Man", URL: "/static/spider-man.jpg"},
+		{Title: "Beabadoobee 2", URL: "/static/beabadoobee2.jpg"},
+		{Title: "Cigarettes After Sex", URL: "/static/cigaretteaftersex.jpg"},
+	}
 
-	// Serve Back-End static assets (CSS/JS/JSON)
-	mux.Handle("/Back-End/", http.StripPrefix("/Back-End/", http.FileServer(http.Dir("./Back-End"))))
+	// Charger les artistes de l'API au démarrage
+	go loadGroupieArtists()
+	go loadLocations()
+	go loadRelations()
 
-	// Carousel images API backed by JSON (see carousel.go)
-	mux.HandleFunc("/album-images", HandleAlbumImages)
+	// Serve the search UI from the folder `Barre de recherche`
+	fs := http.FileServer(http.Dir("./Barre de recherche"))
+	mux.Handle("/", fs)
+
+	// Static assets (if referenced with /static/ in the HTML)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./Barre de recherche/static"))))
+
+	// Health endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	// Artists endpoint depuis Groupie Tracker API
+	mux.HandleFunc("/artists", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		artistsCacheLock.RLock()
+		artists := artistsCache
+		artistsCacheLock.RUnlock()
+
+		if len(artists) == 0 {
+			// Essayer de recharger si le cache est vide
+			loadGroupieArtists()
+			artistsCacheLock.RLock()
+			artists = artistsCache
+			artistsCacheLock.RUnlock()
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(artists)
+	})
+
+	// Artist by ID endpoint
+	mux.HandleFunc("/artist/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Extraire l'ID de l'URL
+		idStr := strings.TrimPrefix(r.URL.Path, "/artist/")
+		var id int
+		fmt.Sscanf(idStr, "%d", &id)
+
+		if id <= 0 {
+			http.Error(w, "ID invalide", http.StatusBadRequest)
+			return
+		}
+
+		artist, err := fetchArtistByID(id)
+		if err != nil {
+			http.Error(w, "Artiste non trouvé", http.StatusNotFound)
+			return
+		}
+
+		// Récupérer les relations pour les dates de concert
+		relations, _ := fetchRelations(id)
+
+		// Créer une réponse enrichie
+		type ArtistResponse struct {
+			GroupieArtist
+			ConcertInfo []struct {
+				Location string   `json:"location"`
+				Dates    []string `json:"dates"`
+			} `json:"concertInfo,omitempty"`
+		}
+
+		response := ArtistResponse{
+			GroupieArtist: artist,
+		}
+
+		if relations != nil && len(relations.DatesLocations) > 0 {
+			for loc, dates := range relations.DatesLocations {
+				response.ConcertInfo = append(response.ConcertInfo, struct {
+					Location string   `json:"location"`
+					Dates    []string `json:"dates"`
+				}{
+					Location: loc,
+					Dates:    dates,
+				})
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	// Search endpoint: GET /search?q=term
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+		q := r.URL.Query().Get("q")
+
+		artistsCacheLock.RLock()
+		allArtists := artistsCache
+		artistsCacheLock.RUnlock()
+
+		results := []GroupieArtist{}
+		if q != "" {
+			for _, a := range allArtists {
+				if containsIgnoreCase(a.Name, q) {
+					results = append(results, a)
+				}
+			}
+		} else {
+			results = allArtists
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"results": results})
+	})
+
+	// External search endpoint expected by the frontend button
+	// GET /external-search?q=term
+	mux.HandleFunc("/external-search", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+		type Image struct {
+			URL string `json:"url"`
+		}
+		type Event struct {
+			Date  string `json:"date,omitempty"`
+			Venue string `json:"venue,omitempty"`
+			Name  string `json:"name,omitempty"`
+			URL   string `json:"url,omitempty"`
+		}
+		type ExtArtist struct {
+			Name   string  `json:"name"`
+			URL    string  `json:"url,omitempty"`
+			Images []Image `json:"images,omitempty"`
+			Events []Event `json:"events,omitempty"`
+		}
+
+		q := r.URL.Query().Get("q")
+
+		artistsCacheLock.RLock()
+		allArtists := artistsCache
+		artistsCacheLock.RUnlock()
+
+		var out []ExtArtist
+
+		// Rechercher dans les artistes Groupie Tracker
+		for _, a := range allArtists {
+			if q == "" || containsIgnoreCase(a.Name, q) {
+				extArtist := ExtArtist{
+					Name: a.Name,
+				}
+
+				if a.Image != "" {
+					extArtist.Images = []Image{{URL: a.Image}}
+				}
+
+				// Récupérer les relations pour les concerts
+				relations, err := fetchRelations(a.ID)
+				if err == nil && relations != nil {
+					for loc, dates := range relations.DatesLocations {
+						for _, date := range dates {
+							extArtist.Events = append(extArtist.Events, Event{
+								Date:  date,
+								Venue: loc,
+								Name:  a.Name + " Concert",
+							})
+						}
+					}
+				}
+
+				out = append(out, extArtist)
+			}
+		}
+
+		// Si aucun résultat dans Groupie Tracker, fallback sur Discogs
+		if len(out) == 0 {
+			artistsResp, err := discogsSearch(q)
+			if err != nil {
+				log.Printf("discogs search error: %v", err)
+			}
+
+			for _, a := range artistsResp {
+				out = append(out, ExtArtist{
+					Name: a.Name,
+					URL:  a.ResourceURL,
+					Images: func() []Image {
+						if a.Thumb != "" {
+							return []Image{{URL: a.Thumb}}
+						}
+						return nil
+					}(),
+				})
+			}
+		}
+
+		// Fallback final aux images locales
+		if len(out) == 0 {
+			for _, ai := range albumImages {
+				if q == "" || containsIgnoreCase(ai.Title, q) {
+					out = append(out, ExtArtist{Name: ai.Title, Images: []Image{{URL: ai.URL}}})
+				}
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"artists": out})
+	})
+
+	// --- Discogs client ---
+
+	// Internal album images API (no external calls)
+	mux.HandleFunc("/album-images", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"images": albumImages})
+	})
+
+	// Locations endpoint
+	mux.HandleFunc("/locations", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		locationsCacheLock.RLock()
+		locations := locationsCache
+		locationsCacheLock.RUnlock()
+
+		if len(locations) == 0 {
+			loadLocations()
+			locationsCacheLock.RLock()
+			locations = locationsCache
+			locationsCacheLock.RUnlock()
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(locations)
+	})
+
+	// Relations endpoint
+	mux.HandleFunc("/relations", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+
+		relationsCacheLock.RLock()
+		relations := relationsCache
+		relationsCacheLock.RUnlock()
+
+		if len(relations) == 0 {
+			loadRelations()
+			relationsCacheLock.RLock()
+			relations = relationsCache
+			relationsCacheLock.RUnlock()
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(relations)
+	})
+
+	// Events endpoint (kept minimal)
+	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
+			return
+		}
+		var payload map[string]interface{}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&payload); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		resp := map[string]interface{}{
+			"status":    "ok",
+			"received":  payload,
+			"timestamp": time.Now().Unix(),
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(resp)
+	})
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 
@@ -43,4 +393,245 @@ func Start(addr string) {
 		log.Fatalf("serveur: Shutdown: %v", err)
 	}
 	log.Println("serveur: exited")
+}
+
+// loadGroupieArtists charge les artistes depuis l'API Groupie Tracker
+func loadGroupieArtists() {
+	const apiURL = "https://groupietrackers.herokuapp.com/api/artists"
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Erreur lors du chargement des artistes: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Code de statut inattendu: %d", resp.StatusCode)
+		return
+	}
+
+	var artists []GroupieArtist
+	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
+		log.Printf("Erreur lors du décodage JSON: %v", err)
+		return
+	}
+
+	artistsCacheLock.Lock()
+	artistsCache = artists
+	artistsCacheLock.Unlock()
+
+	log.Printf("✓ %d artistes chargés depuis l'API Groupie Tracker", len(artists))
+}
+
+// loadLocations charge les lieux des concerts depuis l'API Groupie Tracker
+func loadLocations() {
+	const apiURL = "https://groupietrackers.herokuapp.com/api/locations"
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Erreur lors du chargement des locations: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Code de statut inattendu: %d", resp.StatusCode)
+		return
+	}
+
+	// L'API retourne: { "index": [ {...}, {...}, ... ] }
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		log.Printf("Erreur lors du décodage JSON locations: %v", err)
+		return
+	}
+
+	var locations []map[string]interface{}
+
+	// Extraire le tableau "index" s'il existe
+	if indexData, ok := response["index"]; ok {
+		if arr, ok := indexData.([]interface{}); ok {
+			for _, item := range arr {
+				if m, ok := item.(map[string]interface{}); ok {
+					locations = append(locations, m)
+				}
+			}
+		}
+	}
+
+	locationsCacheLock.Lock()
+	locationsCache = locations
+	locationsCacheLock.Unlock()
+
+	log.Printf("✓ %d locations chargées depuis l'API Groupie Tracker", len(locations))
+}
+
+// loadRelations charge les relations dates-lieux depuis l'API Groupie Tracker
+func loadRelations() {
+	const apiURL = "https://groupietrackers.herokuapp.com/api/relation"
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		log.Printf("Erreur lors du chargement des relations: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Code de statut inattendu: %d", resp.StatusCode)
+		return
+	}
+
+	// L'API retourne: { "index": [ {...}, {...}, ... ] }
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		log.Printf("Erreur lors du décodage JSON relations: %v", err)
+		return
+	}
+
+	var relations []map[string]interface{}
+
+	// Extraire le tableau "index" s'il existe
+	if indexData, ok := response["index"]; ok {
+		if arr, ok := indexData.([]interface{}); ok {
+			for _, item := range arr {
+				if m, ok := item.(map[string]interface{}); ok {
+					relations = append(relations, m)
+				}
+			}
+		}
+	}
+
+	relationsCacheLock.Lock()
+	relationsCache = relations
+	relationsCacheLock.Unlock()
+
+	log.Printf("✓ %d relations chargées depuis l'API Groupie Tracker", len(relations))
+}
+
+// fetchArtistByID récupère un artiste spécifique par son ID
+func fetchArtistByID(id int) (GroupieArtist, error) {
+	url := fmt.Sprintf("https://groupietrackers.herokuapp.com/api/artists/%d", id)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return GroupieArtist{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return GroupieArtist{}, fmt.Errorf("code de statut: %d", resp.StatusCode)
+	}
+
+	var artist GroupieArtist
+	if err := json.NewDecoder(resp.Body).Decode(&artist); err != nil {
+		return GroupieArtist{}, err
+	}
+
+	return artist, nil
+}
+
+// fetchRelations récupère les relations (dates-lieux) pour un artiste
+func fetchRelations(artistID int) (*Relations, error) {
+	url := fmt.Sprintf("https://groupietrackers.herokuapp.com/api/relation/%d", artistID)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("code de statut: %d", resp.StatusCode)
+	}
+
+	var relations Relations
+	if err := json.NewDecoder(resp.Body).Decode(&relations); err != nil {
+		return nil, err
+	}
+
+	return &relations, nil
+}
+
+// discogsSearch calls the Discogs database search API and returns normalized results.
+// Uses the user-provided token. For simplicity, this searches type=artist by q.
+type discogsResult struct {
+	Name        string
+	ResourceURL string
+	Thumb       string
+}
+
+func discogsSearch(q string) ([]discogsResult, error) {
+	token := "KRDsrkapunkrrKnOMADBDawunVlLPtqGpqRzXMfm" // Provided by user
+	if token == "" {
+		return nil, fmt.Errorf("discogs token missing")
+	}
+	reqURL := "https://api.discogs.com/database/search?type=artist&q=" + neturl.QueryEscape(q)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Discogs token="+token)
+	req.Header.Set("User-Agent", "GroupieTracker/1.0 +https://example.com")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("discogs status %d: %s", resp.StatusCode, string(b))
+	}
+	var payload struct {
+		Results []struct {
+			Title       string `json:"title"`
+			ResourceURL string `json:"resource_url"`
+			Thumb       string `json:"thumb"`
+		} `json:"results"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	out := make([]discogsResult, 0, len(payload.Results))
+	for _, r := range payload.Results {
+		out = append(out, discogsResult{
+			Name:        r.Title,
+			ResourceURL: r.ResourceURL,
+			Thumb:       r.Thumb,
+		})
+	}
+	return out, nil
+}
+
+// containsIgnoreCase reports whether s contains sub case-insensitively.
+func containsIgnoreCase(s, sub string) bool {
+	if len(sub) == 0 {
+		return true
+	}
+	S := []rune(s)
+	subR := []rune(sub)
+	for i := range S {
+		if S[i] >= 'A' && S[i] <= 'Z' {
+			S[i] = S[i] - 'A' + 'a'
+		}
+	}
+	for i := range subR {
+		if subR[i] >= 'A' && subR[i] <= 'Z' {
+			subR[i] = subR[i] - 'A' + 'a'
+		}
+	}
+	sLower := string(S)
+	subLower := string(subR)
+	return len(subLower) <= len(sLower) && indexOf(sLower, subLower) >= 0
+}
+
+func indexOf(s, sub string) int {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return i
+		}
+	}
+	return -1
 }
