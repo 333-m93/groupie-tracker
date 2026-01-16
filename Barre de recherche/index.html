@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SpotMyArtist</title>
-  <link rel="stylesheet" href="./static/style.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- Leaflet CSS pour la carte -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 </head>
 <body>
   <!-- Background animation -->
@@ -103,30 +105,13 @@
   <!-- Artist list -->
   <div id="artist-playlist-container">
     <h2>Artistes les plus populaires</h2>
-    <div class="artist-info-wrapper">
-      <div class="artist-info-card">
-        <img class="artist-photo" src="./static/pnl.jpg" alt="PNL">
-        <h3>PNL</h3>
-        <p>Hip-hop français</p>
-      </div>
-      <div class="artist-info-card">
-        <img class="artist-photo" src="./static/tyler.jpg" alt="Tyler">
-        <h3>Tyler, The Creator</h3>
-        <p>Hip-hop alternatif</p>
-      </div>
-      <div class="artist-info-card">
-        <img class="artist-photo" src="./static/billie.jpg" alt="Billie">
-        <h3>Billie Eilish</h3>
-        <p>Pop alternative</p>
-      </div>
-      <div class="artist-info-card">
-        <img class="artist-photo" src="./static/beabadoobee.jpg" alt="Beabadoobee">
-        <h3>Beabadoobee</h3>
-        <p>Indie rock</p>
-      </div>
+    <div class="artist-info-wrapper" id="artists-container">
+      <!-- Les artistes seront chargés dynamiquement depuis l'API -->
     </div>
   </div>
 
-  <script src="./static/script.js"></script>
+  <!-- Leaflet JS pour la carte -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="/static/script.js"></script>
 </body>
 </html>

@@ -152,7 +152,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
 /* ===== SEARCH CONTAINER ===== */
 #search-container {
   width: 90%;
-  max-width: 1200px;
+  max-width: 1400px;
   padding: 20px 40px;
   text-align: left;
   transition: width var(--transition), padding var(--transition);
@@ -213,7 +213,6 @@ button {
   min-height: 100px;
   transition: opacity var(--transition);
   opacity: 1;
-  z-index: 2;
 }
 
 .advanced-filters.hidden {
