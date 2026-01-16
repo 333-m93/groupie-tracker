@@ -314,9 +314,36 @@
               fillOpacity: 0.8
             });
             
-            marker.bindPopup(`<div style="font-family: Arial, sans-serif; font-size: 0.9rem;">
-              <strong>${coords.name}</strong>
-            </div>`);
+                       marker.bindPopup(`
+              <div style="
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                padding: 12px 16px;
+                min-width: 200px;
+                max-width: 300px;
+              ">
+                <div style="
+                  font-size: 16px;
+                  font-weight: 600;
+                  color: #1E40AF;
+                  margin-bottom: 8px;
+                  border-bottom: 2px solid #93C5FD;
+                  padding-bottom: 6px;
+                ">
+                  📍 ${coords.name}
+                </div>
+                <div style="
+                  font-size: 13px;
+                  color: #4B5563;
+                  margin-top: 8px;
+                  line-height: 1.5;
+                ">
+                  Lieu de concert
+                </div>
+              </div>
+            `, {
+              maxWidth: 300,
+              className: 'custom-popup'
+            });
             
             marker.addTo(map);
             bounds.extend([coords.lat, coords.lng]);
