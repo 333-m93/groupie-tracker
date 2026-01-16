@@ -341,20 +341,24 @@
                 <div style="
                   font-size: 16px;
                   font-weight: 600;
-                  color: #1E40AF;
+                  color: #222;
                   margin-bottom: 8px;
-                  border-bottom: 2px solid #93C5FD;
+                  border-bottom: 2px solid #666;
                   padding-bottom: 6px;
+                  position: relative;
+                  padding-left: 8px;
                 ">
-                  📍 ${formatCityName(coords.name)}
+                  <div style="position: absolute; left: -8px; top: 50%; transform: translateY(-50%); width: 4px; height: 20px; background: #666; border-radius: 2px;"></div>
+                  ${formatCityName(coords.name)}
                 </div>
                 <div style="
                   font-size: 13px;
                   color: #4B5563;
                   margin-top: 8px;
                   line-height: 1.5;
+                  font-style: italic;
                 ">
-                  🎵 Lieu de concert
+                  Lieu de concert
                 </div>
               </div>
             `, {
@@ -437,7 +441,7 @@
         transition: background 0.2s;
       ">×</button>
       
-      <h2 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 10px;">💳 Réservation de billet</h2>
+      <h2 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 10px; border-left: 4px solid #555; padding-left: 12px;">Réservation de billet</h2>
       
       <div style="background: rgba(0,0,0,0.05); padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.1);">
         <p style="margin: 5px 0; font-size: 0.95rem;"><strong>Artiste:</strong> ${artistName}</p>
@@ -452,14 +456,14 @@
           <button type="button" class="payment-method-btn" data-method="card" style="
             flex: 1;
             padding: 12px;
-            background: #93C5FD;
-            border: 2px solid #93C5FD;
+            background: #444;
+            border: 2px solid #444;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            color: #222;
+            color: white;
             transition: all 0.2s;
-          ">💳 Carte</button>
+          ">Carte bancaire</button>
           <button type="button" class="payment-method-btn" data-method="paypal" style="
             flex: 1;
             padding: 12px;
@@ -470,7 +474,7 @@
             font-weight: 600;
             color: #222;
             transition: all 0.2s;
-          ">🅿️ PayPal</button>
+          ">PayPal</button>
           <button type="button" class="payment-method-btn" data-method="crypto" style="
             flex: 1;
             padding: 12px;
@@ -481,7 +485,7 @@
             font-weight: 600;
             color: #222;
             transition: all 0.2s;
-          ">₿ Crypto</button>
+          ">Crypto</button>
         </div>
       </div>
 
@@ -555,7 +559,7 @@
               box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
               transition: background 0.2s;
             " onmouseover="this.style.background='#005a94'" onmouseout="this.style.background='#0070ba'">
-              🅿️ Payer avec PayPal
+              Payer avec PayPal
             </button>
           </div>
         </div>
@@ -598,8 +602,8 @@
         </div>
 
         <button type="submit" id="submit-payment-btn" style="
-          background: #93C5FD;
-          color: #222;
+          background: #555;
+          color: white;
           border: none;
           padding: 15px;
           border-radius: 8px;
@@ -609,8 +613,8 @@
           margin-top: 10px;
           transition: background 0.2s;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        " onmouseover="this.style.background='#7BB3F7'" onmouseout="this.style.background='#93C5FD'">
-          🎫 Payer 49,99 €
+        " onmouseover="this.style.background='#333'" onmouseout="this.style.background='#555'">
+          Payer 49,99 €
         </button>
       </form>
     `;
@@ -630,14 +634,16 @@
         setTimeout(() => {
           modalContent.innerHTML = `
             <div style="text-align: center; padding: 20px;">
-              <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+              <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: #555; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 40px; height: 20px; border-left: 4px solid white; border-bottom: 4px solid white; transform: rotate(-45deg) translateY(-5px);"></div>
+              </div>
               <h2 style="color: #222; margin-bottom: 15px;">Redirection vers PayPal</h2>
               <p style="font-size: 1.1rem; margin-bottom: 10px; color: #444;">Vous avez été redirigé vers PayPal</p>
               <p style="opacity: 0.7; margin-bottom: 10px; color: #444;">Mode de paiement : PayPal</p>
               <p style="opacity: 0.7; margin-bottom: 20px; color: #444;">Un email de confirmation vous sera envoyé après le paiement</p>
               <button onclick="this.closest('.payment-modal').remove()" style="
-                background: #93C5FD;
-                color: #222;
+                background: #555;
+                color: white;
                 border: none;
                 padding: 12px 30px;
                 border-radius: 8px;
@@ -663,11 +669,13 @@
         // Mettre à jour les styles des boutons
         paymentMethodBtns.forEach(b => {
           if (b === this) {
-            b.style.background = '#93C5FD';
-            b.style.borderColor = '#93C5FD';
+            b.style.background = '#444';
+            b.style.borderColor = '#444';
+            b.style.color = 'white';
           } else {
             b.style.background = 'white';
             b.style.borderColor = '#ddd';
+            b.style.color = '#222';
           }
         });
 
@@ -774,14 +782,16 @@
         // Simuler le paiement
         modalContent.innerHTML = `
           <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+            <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: #555; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 40px; height: 20px; border-left: 4px solid white; border-bottom: 4px solid white; transform: rotate(-45deg) translateY(-5px);"></div>
+            </div>
             <h2 style="color: #222; margin-bottom: 15px;">Paiement réussi !</h2>
             <p style="font-size: 1.1rem; margin-bottom: 10px; color: #444;">Votre billet a été réservé avec succès</p>
             <p style="opacity: 0.7; margin-bottom: 10px; color: #444;">Mode de paiement : ${paymentMethodName}</p>
             <p style="opacity: 0.7; margin-bottom: 20px; color: #444;">Un email de confirmation vous a été envoyé</p>
             <button onclick="this.closest('.payment-modal').remove()" style="
-              background: #93C5FD;
-              color: #222;
+              background: #555;
+              color: white;
               border: none;
               padding: 12px 30px;
               border-radius: 8px;
@@ -845,7 +855,7 @@
     
     let concertsHtml = '';
     if (artist.concertInfo && artist.concertInfo.length > 0) {
-      concertsHtml = '<h3 style="color: #222; margin-top: 20px; font-size: 1.5rem; margin-bottom: 15px;">🎶 Concerts à venir</h3><ul style="list-style: none; padding: 0;">';
+      concertsHtml = '<h3 style="color: #222; margin-top: 20px; font-size: 1.5rem; margin-bottom: 15px; border-left: 4px solid #555; padding-left: 12px;">Concerts à venir</h3><ul style="list-style: none; padding: 0;">';
       artist.concertInfo.forEach(concert => {
         concert.dates.forEach(date => {
           const concertId = `concert-${date.replace(/\s/g, '-')}-${concert.location.replace(/\s/g, '-')}`;
@@ -857,17 +867,17 @@
             const country = formatCityName(locationParts[locationParts.length - 1].trim());
             cityHtml = `
               <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-weight: 600; font-size: 1rem;">🎵 ${city}</span>
-                <span style="font-size: 0.85rem; opacity: 0.8;">🌍 ${country}</span>
+                <span style="font-weight: 600; font-size: 1rem; color: #222;">${city}</span>
+                <span style="font-size: 0.85rem; opacity: 0.8; color: #666;">${country}</span>
               </div>
             `;
           } else {
-            cityHtml = `<span style="font-weight: 600; font-size: 1rem;">🎵 ${formatCityName(concert.location)}</span>`;
+            cityHtml = `<span style="font-weight: 600; font-size: 1rem; color: #222;">${formatCityName(concert.location)}</span>`;
           }
           
           concertsHtml += `<li class="concert-item" data-concert-date="${date}" data-concert-location="${concert.location}" data-artist-name="${artist.name}" style="
             padding: 15px 18px; 
-            background: linear-gradient(135deg, rgba(147, 197, 253, 0.15) 0%, rgba(167, 139, 250, 0.15) 100%);
+            background: rgba(0, 0, 0, 0.05);
             margin: 10px 0; 
             border-radius: 12px; 
             cursor: pointer;
@@ -875,21 +885,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid rgba(147, 197, 253, 0.3);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #555;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          " onmouseover="this.style.background='linear-gradient(135deg, rgba(147, 197, 253, 0.25) 0%, rgba(167, 139, 250, 0.25) 100%)'; this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 8px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(147, 197, 253, 0.15) 0%, rgba(167, 139, 250, 0.15) 100%)'; this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 4px rgba(0, 0, 0, 0.05)'">
+          " onmouseover="this.style.background='rgba(0, 0, 0, 0.1)'; this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 8px rgba(0, 0, 0, 0.1)'; this.style.borderLeftColor='#333'" onmouseout="this.style.background='rgba(0, 0, 0, 0.05)'; this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 4px rgba(0, 0, 0, 0.05)'; this.style.borderLeftColor='#555'">
             <div style="display: flex; flex-direction: column; gap: 5px; flex: 1;">
-              <span style="font-size: 0.9rem; color: #666; font-weight: 500;">📅 ${date}</span>
+              <span style="font-size: 0.9rem; color: #666; font-weight: 500; font-style: italic;">${date}</span>
               ${cityHtml}
             </div>
-            <span style="background: #48bb78; color: white; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);">🎫 Réserver</span>
+            <span style="background: #555; color: white; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">Réserver</span>
           </li>`;
         });
       });
       concertsHtml += '</ul>';
     }
 
-    const mapButtonHtml = '<button id="show-map-btn" style="margin-top: 20px; padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">🗺️ Voir les lieux de concert</button>';
+    const mapButtonHtml = '<button id="show-map-btn" style="margin-top: 20px; padding: 10px 20px; background: #555; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">Voir les lieux de concert</button>';
 
     modalContent.innerHTML = `
       <button onclick="this.closest('.artist-modal').remove()" style="
@@ -921,6 +932,7 @@
         
         <div style="flex: 1; min-width: 300px;">
           <h2 style="margin-top: 0; font-size: 2.5rem; color: #222; font-family: 'Franklin Gothic Medium', Arial, sans-serif;">${artist.name}</h2>
+          ${artist.genre ? `<p style="font-size: 1.1rem; color: #444; background: rgba(0,0,0,0.05); padding: 8px 12px; border-radius: 6px; display: inline-block; margin-bottom: 10px;"><strong>Genre:</strong> ${artist.genre}</p>` : ''}
           ${artist.creationDate ? `<p style="font-size: 1.1rem; color: #444;"><strong>Année de création:</strong> ${artist.creationDate}</p>` : ''}
           ${artist.firstAlbum ? `<p style="font-size: 1.1rem; color: #444;"><strong>Premier album:</strong> ${artist.firstAlbum}</p>` : ''}
           ${artist.members && artist.members.length > 0 ? `
@@ -996,6 +1008,13 @@
     if (members) {
       filtered = filtered.filter(artist => 
         artist.members && artist.members.length === parseInt(members, 10)
+      );
+    }
+
+    // Filtrer par genre
+    if (genre) {
+      filtered = filtered.filter(artist => 
+        artist.genre && artist.genre.toLowerCase().includes(genre)
       );
     }
 
