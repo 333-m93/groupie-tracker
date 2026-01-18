@@ -214,12 +214,12 @@ button:focus {
 }
 
 #toggle-filters-btn {
-  background-color: var(--button-purple);
+  background-color: #555;
   color: white;
 }
 
 #toggle-filters-btn:hover {
-  background-color: #8b5cf6;
+  background-color: #333;
 }
 
 /* ===== ADVANCED FILTERS ===== */

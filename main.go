@@ -1,8 +1,17 @@
 package main
 
-import "github.com/Mebrouk-Mohammed/groupie-tracker/serveur"
+import (
+	"fmt"
+	"os"
+
+	"github.com/Mebrouk-Mohammed/groupie-tracker/serveur"
+)
 
 func main() {
-	// Very minimal main: delegate all server logic to package serveur
-	serveur.Start(":8080")
+	// Render injecte PORT ; fallback local 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	serveur.Start(fmt.Sprintf(":%s", port))
 }

@@ -26,6 +26,7 @@ type GroupieArtist struct {
 	Locations    string   `json:"locations"`
 	ConcertDates string   `json:"concertDates"`
 	Relations    string   `json:"relations"`
+	Genre        string   `json:"genre"`
 }
 
 // Locations structure pour les lieux de concert
@@ -417,6 +418,9 @@ func loadGroupieArtists() {
 		return
 	}
 
+	// Assigner des genres aux artistes
+	assignGenres(artists)
+
 	artistsCacheLock.Lock()
 	artistsCache = artists
 	artistsCacheLock.Unlock()
@@ -634,4 +638,77 @@ func indexOf(s, sub string) int {
 		}
 	}
 	return -1
+}
+
+// assignGenres assigne des genres musicaux aux artistes en fonction de leur nom
+func assignGenres(artists []GroupieArtist) {
+	genreMap := map[string]string{
+		"Queen":                        "Rock",
+		"SOJA":                         "Reggae",
+		"Pink Floyd":                   "Rock progressif",
+		"Scorpions":                    "Heavy Metal",
+		"XXXTentacion":                 "Hip-Hop",
+		"Mac Miller":                   "Hip-Hop/Rap",
+		"Joyner Lucas":                 "Hip-Hop/Rap",
+		"Kendrick Lamar":               "Hip-Hop/Rap",
+		"AC/DC":                        "Hard Rock",
+		"Pearl Jam":                    "Grunge",
+		"Katy Perry":                   "Pop",
+		"Rihanna":                      "Pop/R&B",
+		"Genesis":                      "Rock progressif",
+		"Phil Collins":                 "Rock/Pop",
+		"Led Zeppelin":                 "Hard Rock",
+		"The Jimi Hendrix Experience":  "Rock",
+		"Bee Gees":                     "Disco",
+		"Deep Purple":                  "Hard Rock",
+		"Aerosmith":                    "Hard Rock",
+		"Dire Straits":                 "Rock",
+		"Mamonas Assassinas":           "Rock/Samba",
+		"Thirty Seconds to Mars":       "Rock alternatif",
+		"Imagine Dragons":              "Pop Rock",
+		"Juice Wrld":                   "Hip-Hop",
+		"Logic":                        "Hip-Hop/Rap",
+		"Alec Benjamin":                "Pop",
+		"Bobby McFerrins":              "Jazz/Pop",
+		"R3HAB":                        "EDM",
+		"Post Malone":                  "Hip-Hop/Pop",
+		"Travis Scott":                 "Hip-Hop",
+		"J. Cole":                      "Hip-Hop/Rap",
+		"Nickelback":                   "Rock alternatif",
+		"Mobb Deep":                    "Hip-Hop",
+		"Guns N' Roses":                "Hard Rock",
+		"NWA":                          "Hip-Hop",
+		"U2":                           "Rock",
+		"Arctic Monkeys":               "Rock indépendant",
+		"Fall Out Boy":                 "Pop Punk",
+		"Gorillaz":                     "Alternative Hip-Hop",
+		"Eagles":                       "Rock",
+		"Linkin Park":                  "Rock alternatif",
+		"Red Hot Chili Peppers":        "Funk Rock",
+		"Eminem":                       "Hip-Hop",
+		"Green Day":                    "Punk Rock",
+		"Metallica":                    "Heavy Metal",
+		"Coldplay":                     "Pop Rock",
+		"Maroon 5":                     "Pop",
+		"Twenty One Pilots":            "Alternative",
+		"The Rolling Stones":           "Rock",
+		"Muse":                         "Rock alternatif",
+		"Foo Fighters":                 "Rock alternatif",
+		"The Chainsmokers":             "EDM/Pop",
+	}
+
+	for i := range artists {
+		if genre, found := genreMap[artists[i].Name]; found {
+			artists[i].Genre = genre
+		} else {
+			// Genre par défaut basé sur l'année de création
+			if artists[i].CreationDate < 1980 {
+				artists[i].Genre = "Classic Rock"
+			} else if artists[i].CreationDate < 2000 {
+				artists[i].Genre = "Rock"
+			} else {
+				artists[i].Genre = "Pop/Rock"
+			}
+		}
+	}
 }
