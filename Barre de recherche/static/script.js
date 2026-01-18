@@ -263,9 +263,20 @@
       font-weight: bold;
       z-index: 1002;
       transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
     `;
     closeBtn.textContent = '×';
-    closeBtn.addEventListener('click', () => modal.remove());
+
+    const closeLocationModal = () => {
+      modal.style.animation = 'modalOverlayFadeOut 0.3s ease forwards';
+      modalContent.style.animation = 'modalContentOut 0.3s ease forwards';
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    closeBtn.addEventListener('click', closeLocationModal);
     closeBtn.addEventListener('mouseover', () => closeBtn.style.background = 'rgba(0,0,0,0.3)');
     closeBtn.addEventListener('mouseout', () => closeBtn.style.background = 'rgba(0,0,0,0.2)');
 
@@ -379,7 +390,7 @@
     // Fermer en cliquant à l'extérieur
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.remove();
+        closeLocationModal();
       }
     });
   }
@@ -826,31 +837,47 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 1000;
       padding: 20px;
       backdrop-filter: blur(5px);
+      animation: modalOverlayFade 0.35s ease;
     `;
     
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
-      background: rgba(240, 240, 240, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 40px;
+      background-color: rgba(240, 240, 240, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 30px;
       border-radius: 20px;
-      max-width: 900px;
-      max-height: 90vh;
-      overflow-y: auto;
+      max-width: 1300px;
+      width: 95vw;
+      max-height: 85vh;
       position: relative;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: row;
+      gap: 30px;
+      overflow: hidden;
+      animation: modalContentIn 0.35s ease;
+      transform-origin: center;
+    `;
+    
+    // Créer un conteneur pour l'image
+    const imageContainer = document.createElement('div');
+    imageContainer.style.cssText = `
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     `;
     
     let concertsHtml = '';
     if (artist.concertInfo && artist.concertInfo.length > 0) {
-      concertsHtml = '<h3 style="color: #222; margin-top: 20px; font-size: 1.5rem; margin-bottom: 15px; border-left: 4px solid #555; padding-left: 12px;">Concerts à venir</h3><ul style="list-style: none; padding: 0;">';
+      concertsHtml = '<h3 style="color: #222; margin-top: 20px; font-size: 1.5rem; margin-bottom: 15px; border-left: 4px solid #555; padding-left: 12px;">Concerts</h3><ul style="list-style: none; padding: 0;">';
       artist.concertInfo.forEach(concert => {
         concert.dates.forEach(date => {
           const concertId = `concert-${date.replace(/\s/g, '-')}-${concert.location.replace(/\s/g, '-')}`;
@@ -897,50 +924,97 @@
 
     const mapButtonHtml = '<button id="show-map-btn" style="margin-top: 20px; padding: 10px 20px; background: #555; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">Voir les lieux de concert</button>';
 
-    modalContent.innerHTML = `
-      <button onclick="this.closest('.artist-modal').remove()" style="
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(0,0,0,0.2);
-        border: none;
-        font-size: 28px;
-        cursor: pointer;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        color: #333;
-        font-weight: bold;
-        transition: background 0.2s;
-      " onmouseover="this.style.background='rgba(0,0,0,0.3)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'">×</button>
-      
-      <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
-        ${artist.image ? `
-          <img src="${artist.image}" alt="${artist.name}" style="
-            width: 300px;
-            height: 300px;
-            object-fit: cover;
-            border-radius: 15px;
-            flex-shrink: 0;
-          " onerror="this.style.display='none'">
+    // Créer l'image
+    if (artist.image) {
+      const imgElement = document.createElement('img');
+      imgElement.src = artist.image;
+      imgElement.alt = artist.name;
+      imgElement.style.cssText = `
+        width: 300px;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 15px;
+        flex-shrink: 0;
+      `;
+      imgElement.onerror = function() { this.style.display = 'none'; };
+      imageContainer.appendChild(imgElement);
+    }
+    
+    // Créer le conteneur pour le contenu (scrollable)
+    const contentContainer = document.createElement('div');
+    contentContainer.style.cssText = `
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      border-radius: 15px;
+      padding-right: 10px;
+      padding-bottom: 40px;
+      max-height: 100%;
+    `;
+    
+    // Ajouter le bouton de fermeture
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.cssText = `
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(0,0,0,0.2);
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: #333;
+      font-weight: bold;
+      transition: background 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    `;
+    const closeArtistModal = () => {
+      modal.style.animation = 'modalOverlayFadeOut 0.3s ease forwards';
+      modalContent.style.animation = 'modalContentOut 0.3s ease forwards';
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    closeBtn.addEventListener('click', closeArtistModal);
+    closeBtn.addEventListener('mouseover', () => closeBtn.style.background = 'rgba(0,0,0,0.3)');
+    closeBtn.addEventListener('mouseout', () => closeBtn.style.background = 'rgba(0,0,0,0.2)');
+    
+    contentContainer.innerHTML = `
+      <div style="margin-bottom: 25px;">
+        <h2 style="margin-top: 0; margin-bottom: 15px; font-size: 3.5rem; color: #111; font-family: 'Franklin Gothic Medium', Arial, sans-serif; font-weight: 900; letter-spacing: -1px;">${artist.name}</h2>
+        ${artist.creationDate ? `<p style="font-size: 1.1rem; color: #444; margin: 5px 0;"><strong>Année de création:</strong> ${artist.creationDate}</p>` : ''}
+        ${artist.firstAlbum ? `<p style="font-size: 1.1rem; color: #444; margin: 5px 0;"><strong>Premier album:</strong> ${artist.firstAlbum}</p>` : ''}
+      </div>
+
+      <hr style="border: none; border-top: 2px solid rgba(0, 0, 0, 0.1); margin: 20px 0;">
+
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 1.5rem; color: #222; margin-bottom: 15px; font-family: 'Franklin Gothic Medium', Arial, sans-serif;">Membres</h3>
+        ${artist.genre ? `<p style="font-size: 1.1rem; color: #444; background: rgba(0,0,0,0.05); padding: 8px 12px; border-radius: 6px; display: inline-block; margin-bottom: 10px;"><strong>Genre:</strong> ${artist.genre}</p>` : ''}
+        ${artist.members && artist.members.length > 0 ? `
+          <ul style="margin: 5px 0 0 20px; color: #555; list-style: disc;">
+            ${artist.members.map(m => `<li style="margin: 3px 0;">${m}</li>`).join('')}
+          </ul>
         ` : ''}
-        
-        <div style="flex: 1; min-width: 300px;">
-          <h2 style="margin-top: 0; font-size: 2.5rem; color: #222; font-family: 'Franklin Gothic Medium', Arial, sans-serif;">${artist.name}</h2>
-          ${artist.genre ? `<p style="font-size: 1.1rem; color: #444; background: rgba(0,0,0,0.05); padding: 8px 12px; border-radius: 6px; display: inline-block; margin-bottom: 10px;"><strong>Genre:</strong> ${artist.genre}</p>` : ''}
-          ${artist.creationDate ? `<p style="font-size: 1.1rem; color: #444;"><strong>Année de création:</strong> ${artist.creationDate}</p>` : ''}
-          ${artist.firstAlbum ? `<p style="font-size: 1.1rem; color: #444;"><strong>Premier album:</strong> ${artist.firstAlbum}</p>` : ''}
-          ${artist.members && artist.members.length > 0 ? `
-            <p style="font-size: 1.1rem; color: #444;"><strong>Membres:</strong></p>
-            <ul style="margin: 5px 0; color: #555;">
-              ${artist.members.map(m => `<li>${m}</li>`).join('')}
-            </ul>
-          ` : ''}
-          ${concertsHtml}
-          ${mapButtonHtml}
-        </div>
+      </div>
+
+      <hr style="border: none; border-top: 2px solid rgba(0, 0, 0, 0.1); margin: 20px 0;">
+
+      <div>
+        ${concertsHtml}
+        ${mapButtonHtml}
       </div>
     `;
+    
+    modalContent.appendChild(closeBtn);
+    modalContent.appendChild(imageContainer);
+    modalContent.appendChild(contentContainer);
     
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
@@ -969,7 +1043,7 @@
     // Fermer en cliquant à l'extérieur
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.remove();
+        closeArtistModal();
       }
     });
   }
