@@ -1,6 +1,7 @@
 /**
  * Artist page - Dynamic content loading
  */
+'use strict';
 
 const ARTIST_DATA = {
   'pnl': {
@@ -46,21 +47,34 @@ const urlParams = new URLSearchParams(window.location.search);
 const artistId = urlParams.get('name');
 const artist = ARTIST_DATA[artistId];
 
-if (artist) {
-  document.title = `${artist.name} - SpotMyArtist`;
-  document.getElementById('artist-title').textContent = artist.name;
-  const img = document.getElementById('artist-image');
-  img.src = artist.image;
-  img.alt = artist.name;
+function displayArtist(artistData) {
+  if (!artistData) {
+    document.getElementById('artist-title').textContent = 'Artiste non trouvé';
+    document.getElementById('artist-info').innerHTML = '<p>Cet artiste n\'existe pas.</p>';
+    return;
+  }
+
+  document.title = `${artistData.name} - SpotMyArtist`;
+  document.getElementById('artist-title').textContent = artistData.name;
   
-  document.getElementById('artist-info').innerHTML = `
-    <p><strong>Genre:</strong> ${artist.genre}</p>
-    <p><strong>Année de création:</strong> ${artist.year}</p>
-    <p><strong>Membres:</strong> ${artist.members}</p>
-    <p><strong>Origine:</strong> ${artist.origin}</p>
-    <p>${artist.description}</p>
+  const img = document.getElementById('artist-image');
+  img.src = artistData.image;
+  img.alt = artistData.name;
+  
+  const infoDiv = document.getElementById('artist-info');
+  infoDiv.innerHTML = `
+    <p><strong>Genre:</strong> ${escapeHtml(artistData.genre)}</p>
+    <p><strong>Année de création:</strong> ${artistData.year}</p>
+    <p><strong>Membres:</strong> ${artistData.members}</p>
+    <p><strong>Origine:</strong> ${escapeHtml(artistData.origin)}</p>
+    <p>${escapeHtml(artistData.description)}</p>
   `;
-} else {
-  document.getElementById('artist-title').textContent = 'Artiste non trouvé';
-  document.getElementById('artist-info').innerHTML = '<p>Cet artiste n\'existe pas.</p>';
 }
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+displayArtist(artist);

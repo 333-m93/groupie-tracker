@@ -4,12 +4,15 @@
  */
 
 (function () {
+  'use strict';
+  
   // ===== CONSTANTS =====
   const DEBOUNCE_DELAY = 300;
   const API_BASE = '';
   
   // Cache des artistes
   let allArtists = [];
+  let debounceTimers = new Map();
 
   // ===== UTILITY FUNCTIONS =====
 
@@ -17,10 +20,16 @@
    * Debounce function to limit function calls
    */
   function debounce(fn, delay) {
-    let timeoutId;
     return (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn(...args), delay);
+      const key = fn.name || fn.toString().substring(0, 50);
+      if (debounceTimers.has(key)) {
+        clearTimeout(debounceTimers.get(key));
+      }
+      const timeoutId = setTimeout(() => {
+        fn(...args);
+        debounceTimers.delete(key);
+      }, delay);
+      debounceTimers.set(key, timeoutId);
     };
   }
 
@@ -100,20 +109,6 @@
         <p>${artist.creationDate ? 'Créé en ' + artist.creationDate : ''}</p>
       </div>
     `).join('');
-
-    // Ajouter les événements de clic immédiatement après le rendu
-    setTimeout(() => {
-      const cards = document.querySelectorAll('.artist-info-card');
-      cards.forEach(card => {
-        card.addEventListener('click', async function(e) {
-          e.stopPropagation();
-          const artistId = this.getAttribute('data-artist-id');
-          if (artistId) {
-            await showArtistDetails(artistId);
-          }
-        });
-      });
-    }, 0);
   }
 
   /**
@@ -519,35 +514,47 @@
   const toggleFiltersBtn = document.getElementById('toggle-filters-btn');
   const searchContainer = document.getElementById('search-container');
   const advancedFilters = document.getElementById('advanced-filters');
+  const artistsContainer = document.getElementById('artists-container');
 
   // ===== EVENT LISTENERS =====
+  const debouncedFilter = debounce(filterArtists, DEBOUNCE_DELAY);
+
+  // Artist cards: event delegation (one listener for all cards)
+  if (artistsContainer) {
+    artistsContainer.addEventListener('click', async (e) => {
+      const card = e.target.closest('.artist-info-card');
+      if (card) {
+        const artistId = card.getAttribute('data-artist-id');
+        if (artistId) {
+          await showArtistDetails(artistId);
+        }
+      }
+    });
+  }
 
   // Search input: debounced filtering
   if (searchInput) {
-    const debouncedFilter = debounce(filterArtists, DEBOUNCE_DELAY);
     searchInput.addEventListener('input', debouncedFilter);
   }
 
   // Toggle filters visibility
   if (toggleFiltersBtn && advancedFilters) {
     toggleFiltersBtn.addEventListener('click', () => {
-      advancedFilters.classList.toggle('hidden');
+      const isHidden = advancedFilters.classList.toggle('hidden');
       if (searchContainer) {
         searchContainer.classList.toggle('expanded');
       }
-      toggleFiltersBtn.textContent = advancedFilters.classList.contains('hidden') 
-        ? 'Filtres' 
-        : 'Masquer filtres';
+      toggleFiltersBtn.textContent = isHidden ? 'Filtres' : 'Masquer filtres';
+      toggleFiltersBtn.setAttribute('aria-expanded', !isHidden);
     });
   }
 
   // Filter inputs
-  const filterInputIds = ['filter-creation-date', 'filter-members', 'filter-genre'];
-  filterInputIds.forEach(id => {
+  ['filter-creation-date', 'filter-members', 'filter-genre'].forEach(id => {
     const element = document.getElementById(id);
     if (element) {
       element.addEventListener('change', filterArtists);
-      element.addEventListener('input', debounce(filterArtists, DEBOUNCE_DELAY));
+      element.addEventListener('input', debouncedFilter);
     }
   });
 
@@ -558,4 +565,10 @@
   } else {
     loadArtists();
   }
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    debounceTimers.forEach(timer => clearTimeout(timer));
+    debounceTimers.clear();
+  });
 })();
