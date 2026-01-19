@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Mebrouk-Mohammed/groupie-tracker/serveur"
+	"github.com/Mebrouk-Mohammed/groupie-tracker/server"
 )
 
 func main() {
@@ -13,5 +13,5 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	serveur.Start(fmt.Sprintf(":%s", port))
+	server.Start(fmt.Sprintf(":%s", port))
 }

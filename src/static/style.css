@@ -1,6 +1,6 @@
 /* ===== VARIABLES & BASE STYLES ===== */
 :root {
-  --primary-bg: #111;
+  --primary-bg: #000000;
   --card-bg: rgba(240, 240, 240, 0.2);
   --text-dark: #222;
   --text-light: #444;
@@ -120,7 +120,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
 
 .container {
   background-color: var(--card-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
   padding: 10px;
   border-radius: 20px;
   position: relative;
@@ -148,7 +148,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   margin: 10px 20px;
   text-align: center;
   font-family: var(--font-family);
-  color: var(--text-dark);
+  color: var(--primary-bg);
 }
 
 .container h2 {
@@ -156,7 +156,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   margin-bottom: 1rem;
   text-align: left;
   font-family: var(--font-family);
-  color: var(--text-dark);
+  color: var(--primary-bg);
 }
 
 /* ===== SEARCH CONTAINER ===== */
@@ -291,7 +291,7 @@ button:focus {
   margin-bottom: 1.5rem;
   text-align: center;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-  color: var(--text-dark);
+  color: var(--primary-bg);
 }
 
 /* ===== ARTIST GRID ===== */

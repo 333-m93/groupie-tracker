@@ -1,4 +1,4 @@
-package serveur
+package server
 
 import (
 	"context"
@@ -84,12 +84,12 @@ func Start(addr string) {
 	go loadLocations()
 	go loadRelations()
 
-	// Serve the search UI from the folder `Barre de recherche`
-	fs := http.FileServer(http.Dir("./Barre de recherche"))
+	// Serve the search UI from the folder `src`
+	fs := http.FileServer(http.Dir("./src"))
 	mux.Handle("/", fs)
 
 	// Static assets (if referenced with /static/ in the HTML)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./Barre de recherche/static"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./src/static"))))
 
 	// Health endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
