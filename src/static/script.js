@@ -13,6 +13,9 @@
   // Cache des artistes
   let allArtists = [];
   let debounceTimers = new Map();
+  // Cache des lieux de concert par artiste (pour filtre ville)
+  let artistLocationsMap = new Map();
+  let locationsLoaded = false;
 
   // ===== UTILITY FUNCTIONS =====
 
@@ -46,6 +49,26 @@
       updateBackgroundCarousel(allArtists);
     } catch (error) {
       console.error('Erreur lors du chargement des artistes:', error);
+    }
+  }
+
+  // Charger et mettre en cache toutes les locations pour filtrer par ville
+  async function loadAllLocations() {
+    try {
+      const response = await fetch('/locations');
+      if (!response.ok) return;
+      const arr = await response.json();
+      artistLocationsMap.clear();
+      arr.forEach(item => {
+        const id = parseInt(item.id);
+        const locs = Array.isArray(item.locations) ? item.locations : [];
+        if (!isNaN(id)) {
+          artistLocationsMap.set(id, locs);
+        }
+      });
+      locationsLoaded = true;
+    } catch (e) {
+      console.error('Erreur lors du chargement des locations pour filtre ville:', e);
     }
   }
 
@@ -94,7 +117,7 @@
     if (!container) return;
 
     if (!artists || artists.length === 0) {
-      container.innerHTML = '<p>Aucun artiste trouvé</p>';
+      container.innerHTML = '<p style="color: var(--primary-bg); text-align: center;">Aucun artiste trouvé</p>';
       return;
     }
 
@@ -1057,11 +1080,12 @@
   /**
    * Filtrer les artistes
    */
-  function filterArtists() {
+  async function filterArtists() {
     const query = (document.getElementById('search-input')?.value || '').toLowerCase();
     const year = document.getElementById('filter-creation-date')?.value;
     const members = document.getElementById('filter-members')?.value;
     const genre = (document.getElementById('filter-genre')?.value || '').toLowerCase();
+    const city = (document.getElementById('filter-city')?.value || '').trim().toLowerCase();
 
     let filtered = allArtists;
 
@@ -1091,6 +1115,25 @@
       filtered = filtered.filter(artist => 
         artist.genre && artist.genre.toLowerCase().includes(genre)
       );
+    }
+
+    // Filtrer par ville (lieux de concert)
+    if (city) {
+      try {
+        if (!locationsLoaded || artistLocationsMap.size === 0) {
+          await loadAllLocations();
+        }
+        filtered = filtered.filter(artist => {
+          const locs = artistLocationsMap.get(parseInt(artist.id)) || artistLocationsMap.get(artist.id) || [];
+          return locs.some(loc => {
+            const formatted = formatCityName(loc).toLowerCase();
+            const cityPart = formatted.split(',')[0];
+            return formatted.includes(city) || cityPart.includes(city);
+          });
+        });
+      } catch (e) {
+        console.error('Erreur filtre ville:', e);
+      }
     }
 
     renderArtists(filtered);
@@ -1137,7 +1180,7 @@
   }
 
   // Filter inputs
-  ['filter-creation-date', 'filter-members', 'filter-genre'].forEach(id => {
+  ['filter-creation-date', 'filter-members', 'filter-genre', 'filter-city'].forEach(id => {
     const element = document.getElementById(id);
     if (element) {
       element.addEventListener('change', filterArtists);
