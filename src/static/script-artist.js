@@ -64,3 +64,14 @@ if (artist) {
   document.getElementById('artist-title').textContent = 'Artiste non trouvé';
   document.getElementById('artist-info').innerHTML = '<p>Cet artiste n\'existe pas.</p>';
 }
+
+document.getElementById('filter-button').addEventListener('click', function() {
+    const city = document.getElementById('city-filter').value.toLowerCase();
+    const filteredArtists = Object.values(ARTIST_DATA).filter(artist => artist.origin.toLowerCase().includes(city));
+    displayArtists(filteredArtists);
+});
+
+function displayArtists(artists) {
+    // Logique pour afficher les artistes filtrés
+    console.log(artists);
+}

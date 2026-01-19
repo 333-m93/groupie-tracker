@@ -1051,11 +1051,12 @@
   /**
    * Filtrer les artistes
    */
-  function filterArtists() {
+  async function filterArtists() {
     const query = (document.getElementById('search-input')?.value || '').toLowerCase();
     const year = document.getElementById('filter-creation-date')?.value;
     const members = document.getElementById('filter-members')?.value;
     const genre = (document.getElementById('filter-genre')?.value || '').toLowerCase();
+    const city = (document.getElementById('filter-city')?.value || '').toLowerCase();
 
     let filtered = allArtists;
 
@@ -1085,6 +1086,23 @@
       filtered = filtered.filter(artist => 
         artist.genre && artist.genre.toLowerCase().includes(genre)
       );
+    }
+
+    // Filtrer par ville
+    if (city) {
+      const artistsWithCity = [];
+      for (const artist of filtered) {
+        const locations = await loadLocations(artist.id);
+        if (locations && locations.length > 0) {
+          const hasCity = locations.some(location => 
+            location.toLowerCase().includes(city)
+          );
+          if (hasCity) {
+            artistsWithCity.push(artist);
+          }
+        }
+      }
+      filtered = artistsWithCity;
     }
 
     renderArtists(filtered);
@@ -1131,7 +1149,7 @@
   }
 
   // Filter inputs
-  ['filter-creation-date', 'filter-members', 'filter-genre'].forEach(id => {
+  ['filter-creation-date', 'filter-members', 'filter-genre', 'filter-city'].forEach(id => {
     const element = document.getElementById(id);
     if (element) {
       element.addEventListener('change', filterArtists);
