@@ -286,7 +286,7 @@
     mapContainer.style.cssText = `
       flex: 1;
       min-height: 400px;
-      border-radius: 20px;
+      border-radius: 0 0 20px 20px;
       overflow: hidden;
     `;
 
@@ -296,12 +296,13 @@
       padding: 20px;
       background: rgba(255, 255, 255, 0.5);
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 20px 20px  0;
     `;
     header.innerHTML = `
       <h2 style="margin: 0; color: #222; font-family: 'Franklin Gothic Medium', Arial, sans-serif;">
         Lieux de concert - ${artist.name}
       </h2>
-      <p style="margin: 5px 0 0 0; color: #666; font-size: 0.95rem;">
+      <p style="margin: 5px 0 0 0; color: #666; font-size: 0.95rem; border-radius:20px;">
         ${locations.length} localisation${locations.length > 1 ? 's' : ''}
       </p>
     `;
@@ -433,18 +434,23 @@
     modalContent.innerHTML = `
       <button class="close-payment-btn" style="
         position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(0,0,0,0.2);
-        border: none;
-        font-size: 28px;
-        cursor: pointer;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        color: #222;
-        font-weight: bold;
-        transition: background 0.2s;
+      top: 15px;
+      right: 15px;
+      background: rgba(0,0,0,0.2);
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: #333;
+      font-weight: bold;
+      transition: background 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
       ">×</button>
       
       <h2 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 10px; border-left: 4px solid #555; padding-left: 12px;">Réservation de billet</h2>
