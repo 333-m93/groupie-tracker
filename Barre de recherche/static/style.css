@@ -7,10 +7,19 @@
   --button-blue: #93C5FD;
   --button-purple: #a78bfa;
   --transition: 0.3s ease;
+  --border-radius: 10px;
+  --border-radius-large: 20px;
+  --font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -46,6 +55,7 @@ body {
   height: 100%;
   overflow: hidden;
   background-color: #222;
+  will-change: transform;
 }
 
 .bg-scrolling {
@@ -135,9 +145,9 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
 }
 .container h1 {
   font-size: 4rem;
-  margin: 10px 20px 10px 20px; 
+  margin: 10px 20px;
   text-align: center;
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-family);
   color: var(--text-dark);
 }
 
@@ -145,7 +155,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   font-size: 1.5rem;
   margin-bottom: 1rem;
   text-align: left;
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-family);
   color: var(--text-dark);
 }
 
@@ -171,7 +181,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   padding: 10px 15px;
   font-size: 1rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--border-radius);
   outline: none;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s;
@@ -179,6 +189,8 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
 
 #search-input:focus {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  outline: 2px solid var(--button-blue);
+  outline-offset: 2px;
 }
 
 /* ===== BUTTONS ===== */
@@ -186,10 +198,19 @@ button {
   padding: 10px 15px;
   font-size: 1rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: background-color var(--transition), box-shadow 0.2s;
+  transition: background-color var(--transition), box-shadow 0.2s, transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button:focus {
+  outline: 2px solid var(--button-blue);
+  outline-offset: 2px;
 }
 
 #toggle-filters-btn {
@@ -230,14 +251,14 @@ button {
   font-weight: bold;
   font-size: 0.95rem;
   color: var(--text-dark);
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-family);
 }
 
 .filter-group input[type="text"],
 .filter-group input[type="number"] {
   padding: 8px 12px;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   font-size: 0.95rem;
   background-color: rgba(255, 255, 255, 0.8);
   outline: none;
@@ -248,6 +269,8 @@ button {
 .filter-group input[type="number"]:focus {
   box-shadow: 0 0 8px rgba(147, 197, 253, 0.5);
   border-color: var(--button-blue);
+  outline: 2px solid var(--button-blue);
+  outline-offset: 2px;
 }
 
 /* ===== ARTIST PLAYLIST CONTAINER ===== */
@@ -286,25 +309,29 @@ button {
   border-radius: 15px;
   text-align: center;
   transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
 }
 
-.artist-info-card:hover {
+.artist-info-card:hover,
+.artist-info-card:focus {
   transform: translateY(-5px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  outline: 2px solid var(--button-blue);
+  outline-offset: 4px;
 }
 
 .artist-info-card h3 {
   font-size: 1.3rem;
   margin: 10px 0;
   color: var(--text-dark);
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-family);
 }
 
 .artist-info-card p {
   font-size: 0.95rem;
   color: var(--text-light);
   margin: 5px 0;
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-family);
 }
 
 .artist-photo {
@@ -343,7 +370,7 @@ button {
   font-size: 2.5rem;
   margin: 20px 0 0 0;
   text-align: center;
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family: var(--font-family);
   color: var(--text-dark);
 }
 
@@ -363,4 +390,25 @@ button {
   border-radius: 15px;
   display: block;
   margin: 0 auto;
+}
+
+/* ===== MODAL ANIMATIONS ===== */
+@keyframes modalOverlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalContentIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modalOverlayFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalContentOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.96); }
 }
