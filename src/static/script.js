@@ -13,6 +13,9 @@
   // Cache des artistes
   let allArtists = [];
   let debounceTimers = new Map();
+  // Cache des lieux de concert par artiste (pour filtre ville)
+  let artistLocationsMap = new Map();
+  let locationsLoaded = false;
 
   // ===== UTILITY FUNCTIONS =====
 
@@ -46,6 +49,26 @@
       updateBackgroundCarousel(allArtists);
     } catch (error) {
       console.error('Erreur lors du chargement des artistes:', error);
+    }
+  }
+
+  // Charger et mettre en cache toutes les locations pour filtrer par ville
+  async function loadAllLocations() {
+    try {
+      const response = await fetch('/locations');
+      if (!response.ok) return;
+      const arr = await response.json();
+      artistLocationsMap.clear();
+      arr.forEach(item => {
+        const id = parseInt(item.id);
+        const locs = Array.isArray(item.locations) ? item.locations : [];
+        if (!isNaN(id)) {
+          artistLocationsMap.set(id, locs);
+        }
+      });
+      locationsLoaded = true;
+    } catch (e) {
+      console.error('Erreur lors du chargement des locations pour filtre ville:', e);
     }
   }
 
@@ -94,7 +117,7 @@
     if (!container) return;
 
     if (!artists || artists.length === 0) {
-      container.innerHTML = '<p>Aucun artiste trouvé</p>';
+      container.innerHTML = '<p style="color: var(--primary-bg); text-align: center;">Aucun artiste trouvé</p>';
       return;
     }
 
@@ -286,7 +309,7 @@
     mapContainer.style.cssText = `
       flex: 1;
       min-height: 400px;
-      border-radius: 20px;
+      border-radius: 0 0 20px 20px;
       overflow: hidden;
     `;
 
@@ -296,12 +319,13 @@
       padding: 20px;
       background: rgba(255, 255, 255, 0.5);
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 20px 20px  0;
     `;
     header.innerHTML = `
       <h2 style="margin: 0; color: #222; font-family: 'Franklin Gothic Medium', Arial, sans-serif;">
         Lieux de concert - ${artist.name}
       </h2>
-      <p style="margin: 5px 0 0 0; color: #666; font-size: 0.95rem;">
+      <p style="margin: 5px 0 0 0; color: #666; font-size: 0.95rem; border-radius:20px;">
         ${locations.length} localisation${locations.length > 1 ? 's' : ''}
       </p>
     `;
@@ -433,18 +457,23 @@
     modalContent.innerHTML = `
       <button class="close-payment-btn" style="
         position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(0,0,0,0.2);
-        border: none;
-        font-size: 28px;
-        cursor: pointer;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        color: #222;
-        font-weight: bold;
-        transition: background 0.2s;
+      top: 15px;
+      right: 15px;
+      background: rgba(0,0,0,0.2);
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: #333;
+      font-weight: bold;
+      transition: background 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
       ">×</button>
       
       <h2 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 10px; border-left: 4px solid #555; padding-left: 12px;">Réservation de billet</h2>
@@ -1056,7 +1085,7 @@
     const year = document.getElementById('filter-creation-date')?.value;
     const members = document.getElementById('filter-members')?.value;
     const genre = (document.getElementById('filter-genre')?.value || '').toLowerCase();
-    const city = (document.getElementById('filter-city')?.value || '').toLowerCase();
+    const city = (document.getElementById('filter-city')?.value || '').trim().toLowerCase();
 
     let filtered = allArtists;
 
@@ -1088,21 +1117,23 @@
       );
     }
 
-    // Filtrer par ville
+    // Filtrer par ville (lieux de concert)
     if (city) {
-      const artistsWithCity = [];
-      for (const artist of filtered) {
-        const locations = await loadLocations(artist.id);
-        if (locations && locations.length > 0) {
-          const hasCity = locations.some(location => 
-            location.toLowerCase().includes(city)
-          );
-          if (hasCity) {
-            artistsWithCity.push(artist);
-          }
+      try {
+        if (!locationsLoaded || artistLocationsMap.size === 0) {
+          await loadAllLocations();
         }
+        filtered = filtered.filter(artist => {
+          const locs = artistLocationsMap.get(parseInt(artist.id)) || artistLocationsMap.get(artist.id) || [];
+          return locs.some(loc => {
+            const formatted = formatCityName(loc).toLowerCase();
+            const cityPart = formatted.split(',')[0];
+            return formatted.includes(city) || cityPart.includes(city);
+          });
+        });
+      } catch (e) {
+        console.error('Erreur filtre ville:', e);
       }
-      filtered = artistsWithCity;
     }
 
     renderArtists(filtered);
