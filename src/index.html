@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SpotMyArtist - Découvrez vos artistes préférés">
+  <title>SpotMyArtist</title>
+  <link rel="stylesheet" href="./static/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+</head>
+<body>
+  <div class="bg-scrolling-container" aria-hidden="true">
+    <div class="bg-column">
+      <div class="bg-scrolling"></div>
+    </div>
+    <div class="bg-column">
+      <div class="bg-scrolling"></div>
+    </div>
+    <div class="bg-column">
+      <div class="bg-scrolling"></div>
+    </div>
+    <div class="bg-column">
+      <div class="bg-scrolling"></div>
+    </div>
+  </div>
+
+  <div class="page-overlay" aria-hidden="true"></div>
+
+  <div class="container header-container">
+    <h1>SpotMyArtist</h1>
+  </div>
+  
+  <!-- Search and filters section -->
+  <div class="container search-section-container" id="search-container">
+    <h2>Barre de recherche</h2>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Rechercher un artiste...">
+      <button id="toggle-filters-btn">Filtres</button>
+    </div>
+    
+    <!-- Advanced filters -->
+    <div id="advanced-filters" class="advanced-filters hidden">
+      <div class="filter-group">
+        <label for="filter-creation-date">Année de création:</label>
+        <input type="number" id="filter-creation-date" placeholder="Ex: 2010" min="1900" max="2099">
+      </div>
+      <div class="filter-group">
+        <label for="filter-members">Nombre de membres:</label>
+        <input type="number" id="filter-members" placeholder="Ex: 2" min="1">
+      </div>
+      <div class="filter-group">
+        <label for="filter-genre">Genre:</label>
+        <input type="text" id="filter-genre" placeholder="Ex: Rock">
+      </div>
+      <div class="filter-group">
+        <label for="filter-city">Pays/Ville:</label>
+        <input type="text" id="filter-city" placeholder="Ex: Paris">
+      </div>
+    </div>
+  </div>
+
+  <!-- Artist list -->
+  <div id="artist-playlist-container">
+    <h2>Artistes les plus populaires</h2>
+    <div class="artist-info-wrapper" id="artists-container">
+      <!-- Les artistes seront chargés dynamiquement depuis l'API -->
+    </div>
+  </div>
+
+  <!-- Leaflet JS pour la carte -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="/static/script.js"></script>
+</body>
+</html>
