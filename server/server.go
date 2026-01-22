@@ -56,29 +56,6 @@ var (
 func Start(addr string) {
 	mux := http.NewServeMux()
 
-	// Static album images served from local assets
-	type AlbumImage struct {
-		Title string `json:"title"`
-		URL   string `json:"url"`
-	}
-	albumImages := []AlbumImage{
-		{Title: "PNL", URL: "/static/pnl.jpg"},
-		{Title: "Laufey", URL: "/static/laufey.png"},
-		{Title: "Boa", URL: "/static/boa.jpg"},
-		{Title: "Gims", URL: "/static/gims.jpg"},
-		{Title: "Hamza", URL: "/static/hamza.jpg"},
-		{Title: "Tyler", URL: "/static/tyler.jpg"},
-		{Title: "Beabadoobee", URL: "/static/beabadoobee.jpg"},
-		{Title: "Billie", URL: "/static/billie.jpg"},
-		{Title: "Bob Marley", URL: "/static/bob-marley.jpg"},
-		{Title: "Imogen Heap", URL: "/static/imogen_heap.jpg"},
-		{Title: "Melo", URL: "/static/Melo.jpg"},
-		{Title: "Vespertine", URL: "/static/Vespertine.jpg"},
-		{Title: "Spider-Man", URL: "/static/spider-man.jpg"},
-		{Title: "Beabadoobee 2", URL: "/static/beabadoobee2.jpg"},
-		{Title: "Cigarettes After Sex", URL: "/static/cigaretteaftersex.jpg"},
-	}
-
 	// Charger les artistes de l'API au démarrage
 	go loadGroupieArtists()
 	go loadLocations()
@@ -282,30 +259,11 @@ func Start(addr string) {
 			}
 		}
 
-		// Fallback final aux images locales
-		if len(out) == 0 {
-			for _, ai := range albumImages {
-				if q == "" || containsIgnoreCase(ai.Title, q) {
-					out = append(out, ExtArtist{Name: ai.Title, Images: []Image{{URL: ai.URL}}})
-				}
-			}
-		}
-
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"artists": out})
 	})
 
 	// --- Discogs client ---
-
-	// Internal album images API (no external calls)
-	mux.HandleFunc("/album-images", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"images": albumImages})
-	})
 
 	// Locations endpoint
 	mux.HandleFunc("/locations", func(w http.ResponseWriter, r *http.Request) {

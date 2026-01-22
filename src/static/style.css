@@ -1,15 +1,19 @@
 /* ===== VARIABLES & BASE STYLES ===== */
 :root {
-  --primary-bg: #111;
+  --primary-bg: #000000;
   --card-bg: rgba(240, 240, 240, 0.2);
   --text-dark: #222;
   --text-light: #444;
   --button-blue: #93C5FD;
   --button-purple: #a78bfa;
   --transition: 0.3s ease;
+  --transition-fast: 0.2s ease;
   --border-radius: 10px;
   --border-radius-large: 20px;
   --font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 *,
@@ -120,7 +124,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
 
 .container {
   background-color: var(--card-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
   padding: 10px;
   border-radius: 20px;
   position: relative;
@@ -148,7 +152,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   margin: 10px 20px;
   text-align: center;
   font-family: var(--font-family);
-  color: var(--text-dark);
+  color: var(--primary-bg);
 }
 
 .container h2 {
@@ -156,7 +160,7 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   margin-bottom: 1rem;
   text-align: left;
   font-family: var(--font-family);
-  color: var(--text-dark);
+  color: var(--primary-bg);
 }
 
 /* ===== SEARCH CONTAINER ===== */
@@ -183,8 +187,8 @@ body > :not(.bg-scrolling-container):not(.page-overlay) {
   border: none;
   border-radius: var(--border-radius);
   outline: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-fast);
 }
 
 #search-input:focus {
@@ -200,8 +204,8 @@ button {
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: background-color var(--transition), box-shadow 0.2s, transform 0.2s;
+  box-shadow: var(--shadow-md);
+  transition: background-color var(--transition), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 button:hover {
@@ -262,7 +266,7 @@ button:focus {
   font-size: 0.95rem;
   background-color: rgba(255, 255, 255, 0.8);
   outline: none;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .filter-group input[type="text"]:focus,
@@ -291,7 +295,7 @@ button:focus {
   margin-bottom: 1.5rem;
   text-align: center;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-  color: var(--text-dark);
+  color: var(--primary-bg);
 }
 
 /* ===== ARTIST GRID ===== */
@@ -308,7 +312,7 @@ button:focus {
   padding: 20px;
   border-radius: 15px;
   text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   cursor: pointer;
 }
 
@@ -411,4 +415,23 @@ button:focus {
 @keyframes modalContentOut {
   from { opacity: 1; transform: scale(1); }
   to { opacity: 0; transform: scale(0.96); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .container h1 {
+    font-size: 2.5rem;
+  }
+  
+  .artist-layout-wrapper {
+    flex-direction: column;
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+  
+  .artist-image-container,
+  .artist-detail-container {
+    max-width: 100%;
+    padding: 20px;
+  }
 }
