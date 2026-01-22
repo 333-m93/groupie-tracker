@@ -22,7 +22,7 @@ cd groupie-tracker
 go run main.go
 ``
 
-Puis ouvre https://groupie-tracker-l97d.onrender.com
+Le navigateur s'ouvre automatiquement sur https://groupie-tracker-l97d.onrender.com.
 
 ## Comment ça marche
 
