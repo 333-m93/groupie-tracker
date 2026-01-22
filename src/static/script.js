@@ -189,13 +189,10 @@
     if (!cityName) return '';
     
     return cityName
-      .replace(/[-_]/g, ' ')  // Remplacer - et _ par des espaces
-      .split(' ')              // Séparer par espaces
-      .map(word => {
-        // Mettre en majuscule la première lettre de chaque mot
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      })
-      .join(' ');              // Rejoindre avec des espaces
+      .replace(/[-_]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }
 
   /**
@@ -204,13 +201,19 @@
    */
   async function geocodeLocation(locationName) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+      
       if (!response.ok) return null;
       
       const results = await response.json();
-      if (results.length === 0) return null;
+      if (!results || results.length === 0) return null;
       
       const result = results[0];
       return {
@@ -219,7 +222,11 @@
         lng: parseFloat(result.lon)
       };
     } catch (error) {
-      console.error('Erreur geocodage:', error);
+      if (error.name === 'AbortError') {
+        console.warn('Geocodage timeout pour:', locationName);
+      } else {
+        console.error('Erreur geocodage:', error);
+      }
       return null;
     }
   }

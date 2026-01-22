@@ -42,27 +42,32 @@ const ARTIST_DATA = {
   }
 };
 
-// Récupérer le paramètre de l'URL
-const urlParams = new URLSearchParams(window.location.search);
-const artistId = urlParams.get('name');
-const artist = ARTIST_DATA[artistId];
+// Échapper les caractères HTML pour éviter les injections XSS
+const escapeHtml = (text) => {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+};
 
+// Afficher les informations de l'artiste
 function displayArtist(artistData) {
+  const titleElement = document.getElementById('artist-title');
+  const imageElement = document.getElementById('artist-image');
+  const infoElement = document.getElementById('artist-info');
+  
   if (!artistData) {
-    document.getElementById('artist-title').textContent = 'Artiste non trouvé';
-    document.getElementById('artist-info').innerHTML = '<p>Cet artiste n\'existe pas.</p>';
+    titleElement.textContent = 'Artiste non trouvé';
+    infoElement.innerHTML = '<p>Cet artiste n\'existe pas.</p>';
     return;
   }
 
   document.title = `${artistData.name} - SpotMyArtist`;
-  document.getElementById('artist-title').textContent = artistData.name;
+  titleElement.textContent = artistData.name;
   
-  const img = document.getElementById('artist-image');
-  img.src = artistData.image;
-  img.alt = artistData.name;
+  imageElement.src = artistData.image;
+  imageElement.alt = artistData.name;
   
-  const infoDiv = document.getElementById('artist-info');
-  infoDiv.innerHTML = `
+  infoElement.innerHTML = `
     <p><strong>Genre:</strong> ${escapeHtml(artistData.genre)}</p>
     <p><strong>Année de création:</strong> ${artistData.year}</p>
     <p><strong>Membres:</strong> ${artistData.members}</p>
@@ -71,10 +76,9 @@ function displayArtist(artistData) {
   `;
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+// Initialisation
+const urlParams = new URLSearchParams(window.location.search);
+const artistId = urlParams.get('name');
+const artist = ARTIST_DATA[artistId];
 
 displayArtist(artist);
