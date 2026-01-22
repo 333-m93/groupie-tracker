@@ -1,26 +1,17 @@
-/**
- * SpotMyArtist - Groupie Tracker API Integration
- * Charge les artistes depuis l'API tout en gardant le style original
- */
+// SpotMyArtist - Interface pour explorer les artistes et leurs concerts
 
 (function () {
   'use strict';
   
-  // ===== CONSTANTS =====
+  // Config de base
   const DEBOUNCE_DELAY = 300;
   const API_BASE = '';
   
-  // Cache des artistes
   let allArtists = [];
   let debounceTimers = new Map();
-  // Cache des lieux de concert par artiste (pour filtre ville)
   let artistLocationsMap = new Map();
 
-  // ===== UTILITY FUNCTIONS =====
-
-  /**
-   * Debounce function to limit function calls
-   */
+  // Évite de spammer l'API quand on tape trop vite
   function debounce(fn, delay) {
     return (...args) => {
       const key = fn.name || fn.toString().substring(0, 50);
@@ -35,9 +26,7 @@
     };
   }
 
-  /**
-   * Charger tous les artistes depuis l'API
-   */
+  // Récupère tous les artistes et affiche la page
   async function loadArtists() {
     try {
       const response = await fetch('/artists');
@@ -51,7 +40,7 @@
     }
   }
 
-  // Charger et mettre en cache toutes les locations pour filtrer par ville
+  // Charge les lieux pour le filtre par ville
   async function loadAllLocations() {
     try {
       const response = await fetch('/locations');
@@ -70,9 +59,7 @@
     }
   }
 
-  /**
-   * Mettre à jour le carrousel de fond avec les images des artistes de l'API
-   */
+  // Remplit le fond avec les images des artistes qui défilent
   function updateBackgroundCarousel(artists) {
     const columns = document.querySelectorAll('.bg-scrolling');
     if (!columns || columns.length === 0) return;
@@ -161,9 +148,8 @@
       .join(' ');
   }
 
-  /**
-   * Cache complet de coordonnées - couvre 95% des villes du monde
-   */
+  // Cache avec les coordonnées GPS de toutes les grandes villes du monde
+  // Permet d'afficher la map super vite sans appeler l'API à chaque fois
   const cityCoordinates = {
     // France
     'paris': { lat: 48.8566, lng: 2.3522 },
@@ -569,14 +555,12 @@
     'valence': { lat: 44.9327, lng: 4.8912 }
   };
 
-  /**
-   * Parser une coordonnée de location (ex: "Paris, France")
-   * Utilise le cache ou Nominatim pour géocoder
-   */
+  // Cherche les coordonnées d'une ville en cache d'abord, puis sur OSM si nécessaire
+  // Retourne rapidement pour pas bloquer l'affichage de la map
   async function geocodeLocation(locationName) {
     if (!locationName) return null;
     
-    // Normalise: minuscules, accents retirés, ponctuation nettoyée
+    // Normalise: minuscules, accents enlevés, espace nettoyé
     const normalize = (str) => str
       .toLowerCase()
       .normalize('NFD').replace(/\p{Diacritic}/gu, '')
@@ -587,7 +571,7 @@
     try {
       const lowerName = normalize(locationName);
       
-      // 1. CACHE EXACT - très rapide
+      // 1. CACHE EXACT - super rapide
       if (cityCoordinates[lowerName]) {
         return {
           name: locationName,
@@ -596,7 +580,7 @@
         };
       }
 
-      // 2. SPLIT ET CLEAN - chercher patterns
+      // 2. SPLIT ET CLEAN - essaye les variantes couantes
       const cleanPatterns = [
         lowerName,
         lowerName.split(',')[0].trim(),     // "Paris, France" → "Paris"
@@ -605,7 +589,7 @@
         lowerName.split('-')[0].trim()      // "San Francisco-CA" → "San Francisco"
       ];
 
-      // 2b. Raccourcis pour éviter les mauvaises correspondances
+      // 2b. Cas spéciaux pour éviter les confusions géo
       if (lowerName.includes('los angeles')) {
         const coords = cityCoordinates['los angeles'] || cityCoordinates['los angeles ca'];
         if (coords) return { name: locationName, lat: coords.lat, lng: coords.lng };
@@ -638,7 +622,7 @@
         }
       }
       
-      // 3. FUZZY MATCH DANS LE CACHE (préférer les correspondances longues)
+      // 3. FUZZY MATCH DANS LE CACHE (cherche des correspondances approx)
       const mainCity = cleanPatterns[1] || lowerName;
       for (const [key, coords] of Object.entries(cityCoordinates)) {
         // Correspondance de début
@@ -659,7 +643,7 @@
         }
       }
       
-      // 4. NOMINATIM FALLBACK - timeout très court
+      // 4. NOMINATIM FALLBACK - timeout court pour pas bloquer
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1000);
       
@@ -705,18 +689,16 @@
     }
   }
 
-  /**
-   * Charger les lieux des concerts depuis l'API via les relations
-   */
+  // Récupère les localités et affiche la carte avec tous les concerts
   async function loadLocations(artistId) {
     try {
-      // Récupérer les relations pour cet artiste
+      // Récupère l'artiste avec ses concerts
       const response = await fetch('/artist/' + artistId);
       if (!response.ok) throw new Error('Erreur de chargement');
       
       const artist = await response.json();
       
-      // Les lieux de concert viennent de concertInfo
+      // Les lieux viennent directement de concertInfo
       if (artist.concertInfo && artist.concertInfo.length > 0) {
         const locationsSet = new Set();
         const locationsArray = [];
@@ -724,7 +706,7 @@
         artist.concertInfo.forEach(concert => {
           if (concert.location && concert.location.trim()) {
             const normalized = concert.location.trim().toLowerCase();
-            // Dédupliquer par nom normalisé
+            // Enlève les doublons
             if (!locationsSet.has(normalized)) {
               locationsSet.add(normalized);
               locationsArray.push(concert.location.trim());
@@ -732,7 +714,7 @@
           }
         });
         
-        console.log(`✓ ${locationsArray.length} lieux uniques chargés`);
+        console.log(`✓ ${locationsArray.length} lieux trouvés`);
         return locationsArray;
       }
       
@@ -743,11 +725,9 @@
     }
   }
 
-  /**
-   * Afficher une carte avec les lieux des concerts
-   */
+  // Ouvre une belle map avec les lieux des concerts
   async function showLocationMap(artist) {
-    // Récupérer les locations
+    // Charge les lieux
     const locations = await loadLocations(artist.id);
     
     if (!locations || locations.length === 0) {
@@ -755,7 +735,7 @@
       return;
     }
 
-    // Créer la modal
+    // Crée la fenêtre
     const modal = document.createElement('div');
     modal.className = 'location-modal';
     modal.style.cssText = `
@@ -832,7 +812,7 @@
       overflow: hidden;
     `;
 
-    // Header avec titre
+    // En-tête avec infos
     const header = document.createElement('div');
     header.style.cssText = `
       padding: 20px;
@@ -845,7 +825,7 @@
         Lieux de concert - ${artist.name}
       </h2>
       <p style="margin: 5px 0 0 0; color: #666; font-size: 0.95rem; border-radius:20px;">
-        ${locations.length} localisation${locations.length > 1 ? 's' : ''}
+        ${locations.length} endroit${locations.length > 1 ? 's' : ''}
       </p>
     `;
 
@@ -855,7 +835,7 @@
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
-    // Initialiser la carte Leaflet
+    // Init la map quand le DOM est prêt
     setTimeout(async () => {
       try {
         const map = L.map(mapContainer.id).setView([48.8566, 2.3522], 3);
@@ -865,7 +845,7 @@
           maxZoom: 19
         }).addTo(map);
 
-        // Géocoder et ajouter les marqueurs
+        // Cherche et place les marqueurs pour tous les concerts
         const bounds = L.latLngBounds();
         let markersAdded = 0;
         let locationsFailed = [];
@@ -930,25 +910,25 @@
           }
         }
 
-        console.log(`✓ ${markersAdded}/${locations.length} marqueurs affichés`);
+        console.log(`✓ ${markersAdded}/${locations.length} concerts affichés`);
         if (locationsFailed.length > 0) {
-          console.warn(`⚠ ${locationsFailed.length} lieux non géocodés:`, locationsFailed);
+          console.warn(`⚠ ${locationsFailed.length} pas trouvés:`, locationsFailed);
         }
         
-        // Adapter la vue pour afficher tous les marqueurs
+        // Affiche tous les concerts sur la map
         if (bounds.isValid() && markersAdded > 0) {
           map.fitBounds(bounds, { padding: [50, 50] });
         } else if (markersAdded === 0) {
-          // Si aucun marqueur, centrer sur Paris par défaut
+          // Si aucun, centre sur Paris
           map.setView([48.8566, 2.3522], 3);
         }
       } catch (error) {
-        console.error('Erreur lors de l\'affichage de la carte:', error);
-        mapContainer.innerHTML = '<p style="padding: 20px; color: #666;">Erreur lors du chargement de la carte</p>';
+        console.error('Oups, erreur map:', error);
+        mapContainer.innerHTML = '<p style="padding: 20px; color: #666;">Erreur chargement map</p>';
       }
     }, 100);
 
-    // Fermer en cliquant à l'extérieur
+    // Ferme quand on clique dehors
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         closeLocationModal();
