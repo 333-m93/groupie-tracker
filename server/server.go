@@ -39,13 +39,6 @@ type GroupieArtist struct {
 	Genre        string   `json:"genre"`
 }
 
-// Locations structure pour les lieux de concert
-type Locations struct {
-	ID        int      `json:"id"`
-	Locations []string `json:"locations"`
-	Dates     string   `json:"dates"`
-}
-
 // Relations structure pour les relations dates-lieux
 type Relations struct {
 	ID             int                 `json:"id"`
@@ -66,33 +59,8 @@ var (
 func Start(addr string) {
 	mux := http.NewServeMux()
 
-	// Static album images served from local assets
-	type AlbumImage struct {
-		Title string `json:"title"`
-		URL   string `json:"url"`
-	}
-	albumImages := []AlbumImage{
-		{Title: "PNL", URL: "/static/pnl.jpg"},
-		{Title: "Laufey", URL: "/static/laufey.png"},
-		{Title: "Boa", URL: "/static/boa.jpg"},
-		{Title: "Gims", URL: "/static/gims.jpg"},
-		{Title: "Hamza", URL: "/static/hamza.jpg"},
-		{Title: "Tyler", URL: "/static/tyler.jpg"},
-		{Title: "Beabadoobee", URL: "/static/beabadoobee.jpg"},
-		{Title: "Billie", URL: "/static/billie.jpg"},
-		{Title: "Bob Marley", URL: "/static/bob-marley.jpg"},
-		{Title: "Imogen Heap", URL: "/static/imogen_heap.jpg"},
-		{Title: "Melo", URL: "/static/Melo.jpg"},
-		{Title: "Vespertine", URL: "/static/Vespertine.jpg"},
-		{Title: "Spider-Man", URL: "/static/spider-man.jpg"},
-		{Title: "Beabadoobee 2", URL: "/static/beabadoobee2.jpg"},
-		{Title: "Cigarettes After Sex", URL: "/static/cigaretteaftersex.jpg"},
-	}
-
 	// Charger les artistes de l'API au démarrage
 	go loadGroupieArtists()
-	go loadLocations()
-	go loadRelations()
 
 	// Serve the search UI from the folder `src`
 	fs := http.FileServer(http.Dir("./src"))
@@ -293,28 +261,12 @@ func Start(addr string) {
 		}
 
 		// Fallback final aux images locales
-		if len(out) == 0 {
-			for _, ai := range albumImages {
-				if q == "" || containsIgnoreCase(ai.Title, q) {
-					out = append(out, ExtArtist{Name: ai.Title, Images: []Image{{URL: ai.URL}}})
-				}
-			}
+		if len(out) == 0 && q != "" {
+			// Si rien n'est trouvé, retourner un tableau vide
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"artists": out})
-	})
-
-	// --- Discogs client ---
-
-	// Internal album images API (no external calls)
-	mux.HandleFunc("/album-images", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"images": albumImages})
 	})
 
 	// Locations endpoint
@@ -359,28 +311,6 @@ func Start(addr string) {
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(relations)
-	})
-
-	// Events endpoint (kept minimal)
-	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "méthode non autorisée", http.StatusMethodNotAllowed)
-			return
-		}
-		var payload map[string]interface{}
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&payload); err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
-		}
-		resp := map[string]interface{}{
-			"status":    "ok",
-			"received":  payload,
-			"timestamp": time.Now().Unix(),
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	srv := &http.Server{Addr: addr, Handler: mux}
